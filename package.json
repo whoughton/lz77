@@ -11,7 +11,7 @@
 		"url": "git@github.com:whoughton/lz77.git"
 	},
 	"keywords": [
-		"Encoding",
+		"Compression",
 		"Data Transmission"
 	],
 	"author": "Weston Houghton <whoughton@gmail.com>",
