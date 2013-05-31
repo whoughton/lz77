@@ -6,6 +6,7 @@
 	"scripts": {
 		"test": ""
 	},
+	"homepage": "http://whoughton.github.io/lz77/",
 	"repository": {
 		"type": "git",
 		"url": "git@github.com:whoughton/lz77.git"
