@@ -1,0 +1,23 @@
+{
+	"name": "lz77",
+	"version": "0.9.0",
+	"description": "A javascript implementation of lz77, usable for node, requirejs/AMD, and browsers...",
+	"main": "index.js",
+	"scripts": {
+		"test": ""
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:whoughton/lz77.git"
+	},
+	"keywords": [
+		"Encoding",
+		"Data Transmission"
+	],
+	"author": "Weston Houghton <whoughton@gmail.com>",
+	"license": "BSD",
+	"bugs": {
+		"url": "https://github.com/whoughton/lz77/issues"
+	},
+	"dependencies": {}
+}

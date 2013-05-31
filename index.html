@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<title>LZ77 (a javascript implementation)</title>
+	<link href="./docs/bootstrap.css" rel="stylesheet" type="text/css" />
+	<link href='http://fonts.googleapis.com/css?family=Lato:100,300,400,700,100italic,300italic,400italic,700italic|Cabin+Sketch:400,700' rel='stylesheet' type='text/css'>
+</head>
+<body>
+	<h1>
+		LZ77
+	</h1>
+	<article>
+		<p>
+			A javascript implementation of LZ77, usable for node, require.js/AMD, and browsers...
+		</p>
+		<h3>
+			What is LZ77
+		</h3>
+		<p>
+			LZ77 and LZ78 are the two lossless data compression algorithms published in papers by Abraham Lempel and Jacob Ziv in 1977 and 1978. They are also known as LZ1 and LZ2 respectively. These two algorithms form the basis for many variations including LZW, LZSS, LZMA and others. Besides their academic influence, these algorithms formed the basis of several ubiquitous compression schemes, including GIF and the DEFLATE algorithm used in PNG.
+		</p>
+		<p>
+			They are both theoretically dictionary coders. LZ77 maintains a sliding window during compression. This was later shown to be equivalent to the explicit dictionary constructed by LZ78—however, they are only equivalent when the entire data is intended to be decompressed. LZ78 decompression allows random access to the input as long as the entire dictionary is available, while LZ77 decompression must always start at the beginning of the input
+		</p>
+		<p class="minor">
+			<i>I used some existing source as a reference, but I do not know where from at this stage, if anyone notices it, please let me know.</i>
+		</p>
+		<h3>
+			<a href="./docs/">View the annotated source</a>
+		</h3>
+		<h4>
+			More LZ77 information:
+		</h4>
+		<ul>
+			<li><a href="https://github.com/whoughton/lz77">GitHub Repository</a></li>
+			<li><a href="http://en.wikipedia.org/wiki/LZ77_and_LZ78">Wikipedia</a></li>
+		</ul>
+	</article>
+</body>
+</html>
