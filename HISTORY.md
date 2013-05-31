@@ -1,6 +1,13 @@
 ## LZ77
 *https://github.com/whoughton/lz77*
 
+### Version 0.9.1
+***
+**Release Date:** _2013-05-30_  
+
+* Fixed capitalization issue in exports
+
+
 ### Version 0.9.0
 ***
 **Release Date:** _2013-05-30_  

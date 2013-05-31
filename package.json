@@ -1,6 +1,6 @@
 {
 	"name": "lz77",
-	"version": "0.9.0",
+	"version": "0.9.1",
 	"description": "A javascript implementation of lz77, usable for node, requirejs/AMD, and browsers...",
 	"main": "index.js",
 	"scripts": {

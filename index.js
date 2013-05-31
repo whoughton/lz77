@@ -235,15 +235,15 @@
 	// *exports for various module managers*
 	if (typeof define !== 'undefined' && define.amd) {
 		// require.js/amd
-		define([], function() { return lz77; });
+		define([], function() { return LZ77; });
 	} else if (typeof module !== 'undefined' && module.exports) {
 		// node.js
-		module.exports = lz77;
+		module.exports = LZ77;
 	} else if (attach !== undefined) {
 		// user provided attachment
-		attach.lz77 = lz77;
+		attach.LZ77 = LZ77;
 	} else {
 		// browser global
-		this.lz77 = lz77;
+		this.LZ77 = LZ77;
 	}
 })();
