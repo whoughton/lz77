@@ -232,18 +232,11 @@
 		return self;
 	}();
 
-	// *exports for various module managers*
-	if (typeof define !== 'undefined' && define.amd) {
-		// require.js/amd
+	if (typeof define !== 'undefined' && define.amd) {				// requirejs/amd
 		define([], function() { return LZ77; });
-	} else if (typeof module !== 'undefined' && module.exports) {
-		// node.js
+	} else if (typeof module !== 'undefined' && module.exports) {	// node
 		module.exports = LZ77;
-	} else if (attach !== undefined) {
-		// user provided attachment
-		attach.LZ77 = LZ77;
-	} else {
-		// browser global
-		this.LZ77 = LZ77;
+	} else if (window !== undefined) {
+		window.LZ77 = LZ77;
 	}
 })();
