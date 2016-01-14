@@ -1,4 +1,5 @@
 ## LZ77
+![Travis Status](https://travis-ci.org/whoughton/lz77.svg?branch=master)
 
 A javascript implementation of LZ77, usable for node, require.js/AMD, and browsers…
 
