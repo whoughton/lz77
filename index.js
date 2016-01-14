@@ -1,28 +1,25 @@
-//*jshint parameters*
-/*jshint curly:true, eqeqeq:true, strict:true, boss:true, laxcomma:true */
-
-(function(global, attach){
+(function(){
 	'use strict';
 
 	// - - -
 	// # LZ77
 	// ** A minimal LZ77 [de]compressor **
-	var LZ77 = function(global){
+	var LZ77 = function(){
 		// ##### Private Variables
 		var
 			self = {}
 		,	settings = {
-				refPrefix: '`',
-				refIntBase: 96,
-				refIntFloorCode: " ".charCodeAt(0),
-				refIntCeilCode: undefined,
-				maxStringDistance: undefined,
-				minStringLength: 5,
-				maxStringLength: undefined,
-				defaultWindow: 144,
-				maxWindow: undefined,
-				windowLength: undefined
-			}
+			refPrefix: '`',
+			refIntBase: 96,
+			refIntFloorCode: ' '.charCodeAt(0),
+			refIntCeilCode: undefined,
+			maxStringDistance: undefined,
+			minStringLength: 5,
+			maxStringLength: undefined,
+			defaultWindow: 144,
+			maxWindow: undefined,
+			windowLength: undefined
+		}
 		;
 
 		// ##### Public Variables
@@ -80,7 +77,7 @@
 
 		var encodeRefInt = function(value, width) {
 			if ((value >= 0) && (value < (Math.pow(settings.refIntBase, width) - 1))) {
-				var encoded = "";
+				var encoded = '';
 				while (value > 0) {
 					encoded = (String.fromCharCode((value % settings.refIntBase) + settings.refIntFloorCode)) + encoded;
 					value = Math.floor(value / settings.refIntBase);
@@ -92,7 +89,7 @@
 				}
 				return encoded;
 			} else {
-				throw "Reference int out of range: " + value + " (width = " + width + ")";
+				throw 'Reference int out of range: ' + value + ' (width = ' + width + ')';
 			}
 		};
 
@@ -112,7 +109,7 @@
 				if ((charCode >= settings.refIntFloorCode) && (charCode <= settings.refIntCeilCode)) {
 					value += charCode - settings.refIntFloorCode;
 				} else {
-					throw "Invalid char code in reference int: " + charCode;
+					throw 'Invalid char code in reference int: ' + charCode;
 				}
 			}
 			return value;
@@ -132,13 +129,15 @@
 		// This is our compression method, taking the input string (and allowing for call-time
 		// paramters) and returning the compressed representation
 		self.compress = function(source, params) {
+			if (Object.prototype.toString.call(source) !== '[object String]') { return false; }
+			
 			setup(params);
 
 			var windowLength = settings.windowLength || settings.defaultWindow;
-			if (windowLength > settings.maxWindow) { throw "Window length too large"; }
+			if (windowLength > settings.maxWindow) { throw 'Window length too large'; }
 
 			var
-				compressed = ""
+				compressed = ''
 			,	pos = 0
 			,	lastPos = source.length - settings.minStringLength
 			;
@@ -149,9 +148,9 @@
 				,	matchLength = settings.minStringLength
 				,	foundMatch = false
 				,	bestMatch = {
-						distance: settings.maxStringDistance,
-						length: 0
-					}
+					distance: settings.maxStringDistance,
+					length: 0
+				}
 				,	newCompressed = null
 				,	isValidMatch
 				,	realMatchLength
@@ -188,7 +187,7 @@
 				compressed += newCompressed;
 			}
 
-			return compressed + source.slice(pos).replace(/`/g, "``");
+			return compressed + source.slice(pos).replace(/`/g, '``');
 		};
 
 		// #### LZ77.decompress()
@@ -198,8 +197,10 @@
 		// decompression method, taking the compressed data (as a string, and allowing for
 		// call-time paramters) and returning the decompressed data
 		self.decompress = function(source, params) {
+			if (Object.prototype.toString.call(source) !== '[object String]') { return false; }
+			
 			var
-				decompressed = ""
+				decompressed = ''
 			,	pos = 0
 			,	currentChar
 			,	nextChar

@@ -1,24 +1,77 @@
 {
-	"name": "lz77",
-	"version": "1.0.0",
-	"description": "A javascript implementation of lz77, usable for node, requirejs/AMD, and browsers...",
-	"main": "index.js",
-	"scripts": {
-		"test": ""
-	},
-	"homepage": "http://whoughton.github.io/lz77/",
-	"repository": {
-		"type": "git",
-		"url": "git@github.com:whoughton/lz77.git"
-	},
-	"keywords": [
-		"Compression",
-		"Data Transmission"
-	],
-	"author": "Weston Houghton <whoughton@gmail.com>",
-	"license": "BSD",
-	"bugs": {
-		"url": "https://github.com/whoughton/lz77/issues"
-	},
-	"dependencies": {}
+  "name": "lz77",
+  "version": "1.1.0",
+  "description": "A javascript implementation of lz77, usable for node, requirejs/AMD, and browsers...",
+  "main": "index.js",
+  "scripts": {
+    "test": "./node_modules/.bin/mocha tests/index.js",
+    "lint": "./node_modules/.bin/eslint index.js"
+  },
+  "homepage": "http://whoughton.github.io/lz77/",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:whoughton/lz77.git"
+  },
+  "keywords": [
+    "Compression",
+    "Data Transmission",
+    "lz77",
+    "lzw"
+  ],
+  "author": "Weston Houghton <whoughton@gmail.com>",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/whoughton/lz77/issues"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "eslint": "^1.10.3",
+    "mocha": "^2.3.4"
+  },
+  "eslintConfig": {
+    "rules": {
+      "indent": [
+        1,
+        "tab",
+        {
+          "SwitchCase": 1
+        }
+      ],
+      "quotes": [
+        1,
+        "single"
+      ],
+      "linebreak-style": [
+        2,
+        "unix"
+      ],
+      "semi": [
+        2,
+        "always"
+      ],
+      "no-console": [
+        0
+      ],
+      "comma-style": [
+        2,
+        "first",
+        {
+          "exceptions": {
+            "ArrayExpression": true,
+            "ObjectExpression": true
+          }
+        }
+      ]
+    },
+    "env": {
+      "es6": true,
+      "browser": true,
+      "node": true
+    },
+    "globals": {
+      "define": true
+    },
+    "extends": "eslint:recommended"
+  }
 }
