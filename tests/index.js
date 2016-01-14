@@ -9,13 +9,13 @@ describe('LZ77', function() {
 	
 	describe('compress', function() {
 		it('Compresses the provided textual content.', function() {
-			let test = lz77.compress(source);
+			var test = lz77.compress(source);
 
 			expect(test).to.equal(compressed);
 		});
 		
 		it('Fails if a string is not provided', function() {
-			let test = lz77.compress(['a', 'b']);
+			var test = lz77.compress(['a', 'b']);
 			
 			expect(test).to.be.false;
 		});
@@ -23,13 +23,13 @@ describe('LZ77', function() {
 
 	describe('decompress', function() {
 		it('Decompresses the provided content', function() {
-			let test = lz77.decompress(compressed);
+			var test = lz77.decompress(compressed);
 			
 			expect(test).to.equal(source);
 		});
 		
 		it('Fails if a string is not provided', function() {
-			let test = lz77.decompress({list: ['a', 'b']});
+			var test = lz77.decompress({list: ['a', 'b']});
 			
 			expect(test).to.be.false;
 		});
