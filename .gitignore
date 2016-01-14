@@ -1,14 +1,8 @@
-lib-cov
-*.seed
-*.log
-*.csv
-*.dat
-*.out
-*.pid
-*.gz
+# Ignore all logfiles and tempfiles.
+/log
+/tmp
 
-pids
-logs
-results
+.DS_Store
 
-npm-debug.log
+/node_modules
+*.map
