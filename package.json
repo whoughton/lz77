@@ -1,13 +1,20 @@
 {
   "name": "lz77",
-  "version": "2.0.0-beta.1",
+  "version": "2.0.0-beta.3",
   "description": "A typescript implementation of lz77, usable for node and browsers.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "module": "dist/lz77.es.js",
+  "exports": {
+    ".": {
+      "import": "./dist/lz77.es.js",
+      "require": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "build:bundle": "vite build",
     "test": "vitest run",
-    "lint": "./node_modules/.bin/eslint index.ts",
+    "lint": "eslint . --ext .ts",
     "docs": "typedoc --out docs/ index.ts",
     "bench": "npm run build && node dist/bench.js"
   },

@@ -120,7 +120,7 @@ export function compressHashTable(source: string, params?: Partial<LZ77Settings>
           matchLength++;
         }
         if (matchLength > bestMatch.length) {
-          bestMatch.distance = pos - candidatePos - matchLength;
+          bestMatch.distance = pos - candidatePos;
           bestMatch.length = matchLength;
         }
       }
@@ -170,7 +170,7 @@ export function compressLegacy(source: string, params?: Partial<LZ77Settings>): 
       } else {
         realMatchLength = matchLength - 1;
         if (foundMatch && (realMatchLength > bestMatch.length)) {
-          bestMatch.distance = pos - searchStart - realMatchLength;
+          bestMatch.distance = pos - searchStart;
           bestMatch.length = realMatchLength;
         }
         matchLength = settings.minStringLength;

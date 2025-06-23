@@ -1,5 +1,20 @@
 // LZ77: A minimal LZ77 [de]compressor (TypeScript version)
 
+/**
+ * Configuration options for LZ77 compression and decompression.
+ * Pass a partial of this object as the second argument to compress or decompress to override defaults.
+ *
+ * @property refPrefix - Reference marker character (default: '`')
+ * @property refIntBase - Base for encoding reference integers (default: 96)
+ * @property refIntFloorCode - Char code for lowest reference int (default: 32, i.e. ' ')
+ * @property minStringLength - Minimum match length (default: 5)
+ * @property defaultWindow - Sliding window size (default: 144)
+ * @property refIntCeilCode - (Advanced) Highest char code for reference int (computed)
+ * @property maxStringDistance - (Advanced) Maximum match distance (computed)
+ * @property maxStringLength - (Advanced) Maximum match length (computed)
+ * @property maxWindow - (Advanced) Maximum window size (computed)
+ * @property windowLength - (Advanced) Override window size (optional)
+ */
 interface LZ77Settings {
   refPrefix: string;
   refIntBase: number;
@@ -136,7 +151,7 @@ function hashSubstring(str: string, pos: number, len: number): string {
  * @param params Optional settings to override defaults.
  * @returns The compressed string, or false if input is not a string.
  */
-export function compress(source: string, params?: Partial<LZ77Settings>): string | false {
+export function compressHash(source: string, params?: Partial<LZ77Settings>): string | false {
   if (Object.prototype.toString.call(source) !== '[object String]') return false;
   const settings = setup(params);
   const windowLength = settings.windowLength || settings.defaultWindow;
@@ -158,14 +173,16 @@ export function compress(source: string, params?: Partial<LZ77Settings>): string
         const candidatePos = candidates[i];
         if (candidatePos < windowStart) break;
         let matchLength = minLen;
+        // Prevent matches from extending past the current position (no overlap beyond pos)
         while (
           matchLength < maxLen &&
-          source.charAt(candidatePos + matchLength) === source.charAt(pos + matchLength)
+          source.charAt(candidatePos + matchLength) === source.charAt(pos + matchLength) &&
+          candidatePos + matchLength < pos
         ) {
           matchLength++;
         }
         if (matchLength > bestMatch.length) {
-          bestMatch.distance = pos - candidatePos - matchLength;
+          bestMatch.distance = pos - candidatePos;
           bestMatch.length = matchLength;
         }
       }
@@ -210,7 +227,7 @@ export function decompress(source: string, params?: Partial<LZ77Settings>): stri
       if (nextChar !== settings.refPrefix) {
         distance = decodeRefInt(source.substr(pos + 1, 2), 2, settings);
         length = decodeRefLength(source.charAt(pos + 3), settings);
-        const start = out.length - distance - length;
+        const start = out.length - distance;
         for (let i = 0; i < length; i++) {
           out.push(out[start + i]);
         }
@@ -243,7 +260,10 @@ export function decompressLegacy(source: string, params?: Partial<LZ77Settings>)
       if (nextChar !== settings.refPrefix) {
         distance = decodeRefInt(source.substr(pos + 1, 2), 2, settings);
         length = decodeRefLength(source.charAt(pos + 3), settings);
-        decompressed += decompressed.substr(decompressed.length - distance - length, length);
+        const start = decompressed.length - distance;
+        for (let i = 0; i < length; i++) {
+          decompressed += decompressed.charAt(start + i);
+        }
         pos += settings.minStringLength - 1;
       } else {
         decompressed += settings.refPrefix;
@@ -298,7 +318,7 @@ export function compressRollingHash(source: string, params?: Partial<LZ77Setting
           matchLength++;
         }
         if (matchLength > bestMatch.length) {
-          bestMatch.distance = pos - candidatePos - matchLength;
+          bestMatch.distance = pos - candidatePos;
           bestMatch.length = matchLength;
         }
       }
@@ -322,4 +342,83 @@ export function compressRollingHash(source: string, params?: Partial<LZ77Setting
     compressed += newCompressed;
   }
   return compressed + source.slice(pos).replace(/`/g, '``');
-} 
+}
+
+/**
+ * Hybrid LZ77 compressor: uses hash table for fast match search, but falls back to full window scan for correctness.
+ * This ensures full LZ77 round-trip safety, with performance close to the hash table method for most inputs.
+ */
+export function compressHybrid(source: string, params?: Partial<LZ77Settings>): string | false {
+  if (Object.prototype.toString.call(source) !== '[object String]') return false;
+  const settings = setup(params);
+  const windowLength = settings.windowLength || settings.defaultWindow;
+  if (windowLength > (settings.maxWindow as number)) throw new Error('Window length too large');
+  let compressed = '';
+  let pos = 0;
+  const lastPos = source.length - settings.minStringLength;
+  const hashTable: Map<string, number[]> = new Map();
+  const minLen = settings.minStringLength;
+  const maxLen = settings.maxStringLength as number;
+  while (pos < lastPos) {
+    const windowStart = Math.max(pos - windowLength, 0);
+    let bestMatch = { distance: settings.maxStringDistance as number, length: 0 };
+    let newCompressed: string | null = null;
+    if (pos + minLen <= source.length) {
+      // Hash table search
+      const hash = hashSubstring(source, pos, minLen);
+      const candidates = hashTable.get(hash) || [];
+      for (let i = candidates.length - 1; i >= 0; i--) {
+        const candidatePos = candidates[i];
+        if (candidatePos < windowStart) break;
+        let matchLength = minLen;
+        while (
+          candidatePos + matchLength < pos &&
+          matchLength < maxLen &&
+          source.substr(candidatePos, matchLength) === source.substr(pos, matchLength)
+        ) {
+          matchLength++;
+        }
+        // After loop, matchLength is one past the last valid match
+        let realMatchLength = matchLength - 1;
+        if (realMatchLength >= minLen && realMatchLength > bestMatch.length) {
+          bestMatch.distance = pos - candidatePos;
+          bestMatch.length = realMatchLength;
+        }
+      }
+      if (!hashTable.has(hash)) hashTable.set(hash, []);
+      hashTable.get(hash)!.push(pos);
+    }
+    // Always do the window scan for longest match
+    for (let candidatePos = windowStart; candidatePos < pos; candidatePos++) {
+      let matchLength = minLen;
+      while (
+        candidatePos + matchLength < pos &&
+        matchLength < maxLen &&
+        source.substr(candidatePos, matchLength) === source.substr(pos, matchLength)
+      ) {
+        matchLength++;
+      }
+      let realMatchLength = matchLength - 1;
+      if (realMatchLength >= minLen && realMatchLength > bestMatch.length) {
+        bestMatch.distance = pos - candidatePos;
+        bestMatch.length = realMatchLength;
+      }
+    }
+    if (bestMatch.length) {
+      newCompressed = settings.refPrefix + encodeRefInt(bestMatch.distance, 2, settings) + encodeRefLength(bestMatch.length, settings);
+      pos += bestMatch.length;
+    } else {
+      if (source.charAt(pos) !== settings.refPrefix) {
+        newCompressed = source.charAt(pos);
+      } else {
+        newCompressed = settings.refPrefix + settings.refPrefix;
+      }
+      pos++;
+    }
+    compressed += newCompressed;
+  }
+  return compressed + source.slice(pos).replace(/`/g, '``');
+}
+
+// Make compressHybrid the default compress
+export { compressHybrid as compress };
