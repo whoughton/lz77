@@ -8,7 +8,10 @@ LZ77 and LZ78 are the two lossless data compression algorithms published in pape
 
 They are both theoretically dictionary coders. LZ77 maintains a sliding window during compression. This was later shown to be equivalent to the explicit dictionary constructed by LZ78—however, they are only equivalent when the entire data is intended to be decompressed. LZ78 decompression allows random access to the input as long as the entire dictionary is available, while LZ77 decompression must always start at the beginning of the input
 
-*I used some existing source as a reference, but I do not know where from at this stage, if anyone notices it, please let me know.*
+#### Reference
+The original code likely referenced source (I honestly don't recall, but these seem very likely) from:
+- https://github.com/olle/lz77-kit/blob/master/src/main/js/lz77.js
+- https://web.archive.org/web/20091026234748/http://geocities.com/diogok_br/lz77/
 
 #### ESM/TypeScript Example
 
@@ -141,5 +144,9 @@ This will create:
 
 - The legacy compressor is fully correct but slow; hash table/optimized methods (compress, compressHashTable) are fast but may miss rare edge cases (see below).
 - The compress (default) method is now always fully correct and round-trip safe (uses compressHybrid internally). compressHash is available for advanced users who want maximum speed and are willing to accept rare edge cases. Debug output has been removed in the latest version.
+
+## License
+
+This project is licensed under the BSD 2-Clause License. See the [LICENSE](./LICENSE) file for details.
 
 

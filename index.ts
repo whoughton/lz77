@@ -1,3 +1,4 @@
+// lz77 - BSD 2-Clause License - Copyright (c) 2024 Weston Houghton
 // LZ77: A minimal LZ77 [de]compressor (TypeScript version)
 
 /**
@@ -15,7 +16,7 @@
  * @property maxWindow - (Advanced) Maximum window size (computed)
  * @property windowLength - (Advanced) Override window size (optional)
  */
-interface LZ77Settings {
+export interface LZ77Settings {
   refPrefix: string;
   refIntBase: number;
   refIntFloorCode: number;

@@ -1,9 +1,33 @@
 ## LZ77
 *https://github.com/whoughton/lz77*
 
+### Version v2.0.0-beta.4
+***
+**Release Date:** _2025-06-23_
+
+- License audit: BSD 2-Clause LICENSE file added, license headers in main source files.
+- README updated with reference section and license section.
+- TypeDoc added for LZ77Settings
+- Final pre-release polish and documentation review.
+
+### Version v2.0.0-beta.3
+***
+**Release Date:** _2025-06-23_
+
+- `compress` is now always fully correct and round-trip safe (internally uses `compressHybrid`).
+- The previous hash table-based method is now available as `compressHash` for advanced users who want maximum speed and are willing to accept rare edge cases.
+- Documentation and API updated to reflect this change; usage examples now show `compress` as always safe by default.
+- Debug output has been removed from the codebase.
+
+### Version v2.0.0-beta.2
+***
+**Release Date:** _2025-06-23_
+
+- Skipped, oops!
+
 ### Version 2.0.0-beta.1
 ***
-**Release Date:** _2024-_
+**Release Date:** _2025-06-23_
 
 * Major speed optimizations for compression and decompression
 * Added array-based (fast) decompress implementation
@@ -46,8 +70,3 @@
 * Update the exports system to hopefully work with multiple toolsets
 * Prepped for npmjs publishing
 
-## v2.0.0-beta.3
-- `compress` is now always fully correct and round-trip safe (internally uses `compressHybrid`).
-- The previous hash table-based method is now available as `compressHash` for advanced users who want maximum speed and are willing to accept rare edge cases.
-- Documentation and API updated to reflect this change; usage examples now show `compress` as always safe by default.
-- Debug output has been removed from the codebase.

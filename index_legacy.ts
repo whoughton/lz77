@@ -1,3 +1,4 @@
+// lz77 - BSD 2-Clause License - Copyright (c) 2024 Weston Houghton
 // Legacy LZ77 compress implementation for benchmarking
 
 interface LZ77Settings {

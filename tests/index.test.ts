@@ -43,7 +43,7 @@ describe('LZ77', () => {
   });
 
   // Known limitation: compressHash (and similar hash-table methods) may fail this test for certain minStringLength and input patterns. This is kept for documentation purposes.
-  it.skip('Round-trip: minStringLength=6, sample issue string', () => {
+  it.skip('Round-trip: minStringLength=6, sample issue (#3) string', () => {
     const settings = { minStringLength: 6 };
     const to_compress = "can't read my, can't read my, no he can't read my poker face";
     for (const c of compressVariants) {
@@ -53,5 +53,26 @@ describe('LZ77', () => {
         expect(decompressed, `Failed for compress=${c.name}, decompress=${d.name}\nCompressed: ${compressed}\nDecompressed: ${decompressed}`).toBe(to_compress);
       }
     }
+  });
+
+  describe('Compression effectiveness', () => {
+    it('compresses repeated substrings and round-trips correctly', () => {
+      const settings = { minStringLength: 5 };
+      const to_compress = "hello hello baby you called I can't hear a thing";
+      for (const c of compressVariants) {
+        const compressed = c.fn(to_compress, settings);
+        // Debug output: log lengths
+        // console.log(`[${c.name}] original length:`, to_compress.length, 'compressed length:', (compressed as string).length);
+        // Should be a string and not equal to the original (unless incompressible)
+        expect(typeof compressed).toBe('string');
+        // Should not be longer than the input (unless incompressible)
+        expect((compressed as string).length).toBeLessThanOrEqual(to_compress.length);
+        // Should always round-trip
+        for (const d of decompressVariants) {
+          const decompressed = d.fn(compressed as string, settings);
+          expect(decompressed).toBe(to_compress);
+        }
+      }
+    });
   });
 }); 
