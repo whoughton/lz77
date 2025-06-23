@@ -1,15 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "declaration": true,
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
   },
-  "include": ["index.ts", "tests/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["index.ts", "index_legacy.ts", "bench.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist"],
+  "bench": "node --loader ts-node/esm bench.ts"
 } 

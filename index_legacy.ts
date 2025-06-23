@@ -1,4 +1,4 @@
-// LZ77: A minimal LZ77 [de]compressor (TypeScript version)
+// Legacy LZ77 compress implementation for benchmarking
 
 interface LZ77Settings {
   refPrefix: string;
@@ -86,57 +86,12 @@ function encodeRefLength(length: number, settings: LZ77Settings): string {
   return encodeRefInt(length - settings.minStringLength, 1, settings);
 }
 
-function decodeRefInt(data: string, width: number, settings: LZ77Settings): number {
-  let value = 0;
-  let charCode;
-  for (let i = 0; i < width; i++) {
-    value *= settings.refIntBase;
-    charCode = data.charCodeAt(i);
-    if (charCode >= settings.refIntFloorCode && charCode <= (settings.refIntCeilCode as number)) {
-      value += charCode - settings.refIntFloorCode;
-    } else {
-      throw new Error('Invalid char code in reference int: ' + charCode);
-    }
-  }
-  return value;
-}
-
-function decodeRefLength(data: string, settings: LZ77Settings): number {
-  return decodeRefInt(data, 1, settings) + settings.minStringLength;
-}
-
-// Helper: Rabin-Karp rolling hash for substrings of length minStringLength
-function rollingHash(str: string, pos: number, len: number, prevHash?: number, prevChar?: string, nextChar?: string): number {
-  const base = 256;
-  const mod = 2 ** 31 - 1;
-  if (prevHash === undefined) {
-    // Compute hash from scratch
-    let hash = 0;
-    for (let i = 0; i < len; i++) {
-      hash = (hash * base + str.charCodeAt(pos + i)) % mod;
-    }
-    return hash;
-  } else {
-    // Rolling update: remove prevChar, add nextChar
-    let hash = prevHash;
-    hash = (hash - (prevChar!.charCodeAt(0) * Math.pow(base, len - 1)) % mod + mod) % mod;
-    hash = (hash * base + nextChar!.charCodeAt(0)) % mod;
-    return hash;
-  }
-}
-
 // Helper: Hash a substring of length minStringLength (for hash-table, non-rolling version)
 function hashSubstring(str: string, pos: number, len: number): string {
   return str.substr(pos, len);
 }
 
-/**
- * Compress a string using LZ77 algorithm.
- * @param source The source string to compress.
- * @param params Optional settings to override defaults.
- * @returns The compressed string, or false if input is not a string.
- */
-export function compress(source: string, params?: Partial<LZ77Settings>): string | false {
+export function compressHashTable(source: string, params?: Partial<LZ77Settings>): string | false {
   if (Object.prototype.toString.call(source) !== '[object String]') return false;
   const settings = setup(params);
   const windowLength = settings.windowLength || settings.defaultWindow;
@@ -188,74 +143,7 @@ export function compress(source: string, params?: Partial<LZ77Settings>): string
   return compressed + source.slice(pos).replace(/`/g, '``');
 }
 
-/**
- * Decompress a string using LZ77 algorithm.
- * @param source The compressed string to decompress.
- * @param params Optional settings to override defaults.
- * @returns The decompressed string, or false if input is not a string.
- */
-export function decompress(source: string, params?: Partial<LZ77Settings>): string | false {
-  if (Object.prototype.toString.call(source) !== '[object String]') return false;
-  let out: string[] = [];
-  let pos = 0;
-  let currentChar: string, nextChar: string, distance: number, length: number;
-  const settings = setup(params);
-  while (pos < source.length) {
-    currentChar = source.charAt(pos);
-    if (currentChar !== settings.refPrefix) {
-      out.push(currentChar);
-      pos++;
-    } else {
-      nextChar = source.charAt(pos + 1);
-      if (nextChar !== settings.refPrefix) {
-        distance = decodeRefInt(source.substr(pos + 1, 2), 2, settings);
-        length = decodeRefLength(source.charAt(pos + 3), settings);
-        const start = out.length - distance - length;
-        for (let i = 0; i < length; i++) {
-          out.push(out[start + i]);
-        }
-        pos += settings.minStringLength - 1;
-      } else {
-        out.push(settings.refPrefix);
-        pos += 2;
-      }
-    }
-  }
-  return out.join('');
-}
-
-/**
- * Legacy decompress: string concatenation version (for benchmarking)
- */
-export function decompressLegacy(source: string, params?: Partial<LZ77Settings>): string | false {
-  if (Object.prototype.toString.call(source) !== '[object String]') return false;
-  let decompressed = '';
-  let pos = 0;
-  let currentChar: string, nextChar: string, distance: number, length: number;
-  const settings = setup(params);
-  while (pos < source.length) {
-    currentChar = source.charAt(pos);
-    if (currentChar !== settings.refPrefix) {
-      decompressed += currentChar;
-      pos++;
-    } else {
-      nextChar = source.charAt(pos + 1);
-      if (nextChar !== settings.refPrefix) {
-        distance = decodeRefInt(source.substr(pos + 1, 2), 2, settings);
-        length = decodeRefLength(source.charAt(pos + 3), settings);
-        decompressed += decompressed.substr(decompressed.length - distance - length, length);
-        pos += settings.minStringLength - 1;
-      } else {
-        decompressed += settings.refPrefix;
-        pos += 2;
-      }
-    }
-  }
-  return decompressed;
-}
-
-// Export the rolling hash version as compressRollingHash
-export function compressRollingHash(source: string, params?: Partial<LZ77Settings>): string | false {
+export function compressLegacy(source: string, params?: Partial<LZ77Settings>): string | false {
   if (Object.prototype.toString.call(source) !== '[object String]') return false;
   const settings = setup(params);
   const windowLength = settings.windowLength || settings.defaultWindow;
@@ -263,54 +151,36 @@ export function compressRollingHash(source: string, params?: Partial<LZ77Setting
   let compressed = '';
   let pos = 0;
   const lastPos = source.length - settings.minStringLength;
-  const hashTable: Map<number, number[]> = new Map();
-  const minLen = settings.minStringLength;
-  const maxLen = settings.maxStringLength as number;
-  let prevHash: number | undefined = undefined;
   while (pos < lastPos) {
-    const windowStart = Math.max(pos - windowLength, 0);
-    let bestMatch = { distance: settings.maxStringDistance as number, length: 0 };
+    let searchStart = Math.max(pos - windowLength, 0);
+    let matchLength = settings.minStringLength;
+    let foundMatch = false;
+    let bestMatch = {
+      distance: settings.maxStringDistance as number,
+      length: 0
+    };
     let newCompressed: string | null = null;
-    let hash: number | undefined = undefined;
-    if (pos + minLen <= source.length) {
-      if (prevHash === undefined) {
-        hash = rollingHash(source, pos, minLen);
+    let isValidMatch: boolean;
+    let realMatchLength: number;
+    while ((searchStart + matchLength) < pos) {
+      isValidMatch = (source.substr(searchStart, matchLength) === source.substr(pos, matchLength)) && (matchLength < (settings.maxStringLength as number));
+      if (isValidMatch) {
+        matchLength++;
+        foundMatch = true;
       } else {
-        hash = rollingHash(
-          source,
-          pos,
-          minLen,
-          prevHash,
-          source.charAt(pos - 1),
-          source.charAt(pos + minLen - 1)
-        );
-      }
-      prevHash = hash;
-      const candidates = hashTable.get(hash) || [];
-      for (let i = candidates.length - 1; i >= 0; i--) {
-        const candidatePos = candidates[i];
-        if (candidatePos < windowStart) break;
-        let matchLength = minLen;
-        while (
-          matchLength < maxLen &&
-          source.charAt(candidatePos + matchLength) === source.charAt(pos + matchLength)
-        ) {
-          matchLength++;
+        realMatchLength = matchLength - 1;
+        if (foundMatch && (realMatchLength > bestMatch.length)) {
+          bestMatch.distance = pos - searchStart - realMatchLength;
+          bestMatch.length = realMatchLength;
         }
-        if (matchLength > bestMatch.length) {
-          bestMatch.distance = pos - candidatePos - matchLength;
-          bestMatch.length = matchLength;
-        }
+        matchLength = settings.minStringLength;
+        searchStart++;
+        foundMatch = false;
       }
-      if (!hashTable.has(hash)) hashTable.set(hash, []);
-      hashTable.get(hash)!.push(pos);
-    } else {
-      prevHash = undefined;
     }
     if (bestMatch.length) {
       newCompressed = settings.refPrefix + encodeRefInt(bestMatch.distance, 2, settings) + encodeRefLength(bestMatch.length, settings);
       pos += bestMatch.length;
-      prevHash = undefined;
     } else {
       if (source.charAt(pos) !== settings.refPrefix) {
         newCompressed = source.charAt(pos);

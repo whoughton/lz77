@@ -8,7 +8,8 @@
     "build:bundle": "vite build",
     "test": "vitest run",
     "lint": "./node_modules/.bin/eslint index.ts",
-    "docs": "typedoc --out docs/ index.ts"
+    "docs": "typedoc --out docs/ index.ts",
+    "bench": "npm run build && node dist/bench.js"
   },
   "homepage": "http://whoughton.github.io/lz77/",
   "repository": {
@@ -27,12 +28,12 @@
     "url": "https://github.com/whoughton/lz77/issues"
   },
   "type": "module",
-  "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "vitest": "^1.0.0",
+    "ts-node": "^10.9.2",
     "typedoc": "^0.25.0",
-    "vite": "^5.0.0"
+    "typescript": "^5.8.3",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
   },
   "eslintConfig": {
     "rules": {

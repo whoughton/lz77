@@ -59,6 +59,8 @@ npm run docs
 This will generate HTML documentation in the `docs/` directory. Open `docs/index.html` in your browser to view the API docs for all exported functions and types.
 
 > **Note:** This implementation is lossless and round-trip safe: `decompress(compress(input)) === input` for all valid input. However, the exact compressed output may differ from previous versions or other LZ77 implementations, as there are multiple valid ways to encode the same data.
+>
+> **Compression output length:** The optimized version may produce compressed outputs of different lengths compared to the legacy version. This is due to differences in how matches are found and selected, which is normal for LZ77. All outputs are valid and will decompress to the original input.
 
 ### Browser Usage
 
@@ -95,5 +97,9 @@ This will create:
   console.log(decompressed);
 </script>
 ```
+
+> **Interchangeable compress methods:** All compress methods (`compress`, `compressRollingHash`, `compressLegacy`, `compressHashTable`) produce valid LZ77 output and are fully compatible with the single `decompress` function. You can use any compress method and decompress the result with `decompress`.
+
+> **Performance note:** In JavaScript, the substring hash table method (`compress`) is generally faster than the rolling hash (Rabin-Karp, `compressRollingHash`) method, even for very large inputs. This is because JavaScript engines highly optimize string operations, making direct substring hashing extremely efficient. Benchmarks in this repository confirm that the rolling hash does not outperform the substring hash table approach in practice. The rolling hash version is included mainly for reference and educational purposes.
 
 
