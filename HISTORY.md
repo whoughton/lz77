@@ -1,6 +1,13 @@
 ## LZ77
 *https://github.com/whoughton/lz77*
 
+### Version v2.0.0
+***
+**Release Date:** _2025-06-23_
+
+- Released to npm
+- Links added to Readme
+
 ### Version v2.0.0-beta.4
 ***
 **Release Date:** _2025-06-23_

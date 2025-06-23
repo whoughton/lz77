@@ -1,4 +1,5 @@
 ## LZ77
+### Version 2.0 - Typescript, Speed Improvements, New Methods Available
 ![CI](https://github.com/whoughton/lz77/actions/workflows/ci.yml/badge.svg)
 
 A TypeScript/ESM implementation of LZ77, usable for Node.js and modern browsers.
@@ -7,6 +8,12 @@ A TypeScript/ESM implementation of LZ77, usable for Node.js and modern browsers.
 LZ77 and LZ78 are the two lossless data compression algorithms published in papers by Abraham Lempel and Jacob Ziv in 1977 and 1978. They are also known as LZ1 and LZ2 respectively. These two algorithms form the basis for many variations including LZW, LZSS, LZMA and others. Besides their academic influence, these algorithms formed the basis of several ubiquitous compression schemes, including GIF and the DEFLATE algorithm used in PNG.
 
 They are both theoretically dictionary coders. LZ77 maintains a sliding window during compression. This was later shown to be equivalent to the explicit dictionary constructed by LZ78—however, they are only equivalent when the entire data is intended to be decompressed. LZ78 decompression allows random access to the input as long as the entire dictionary is available, while LZ77 decompression must always start at the beginning of the input
+
+### Links
+- [Documentation](https://whoughton.github.io/lz77/docs/)
+- [Issues](https://github.com/whoughton/lz77/issues)
+- [NPM](https://www.npmjs.com/package/lz77)
+
 
 #### Reference
 The original code likely referenced source (I honestly don't recall, but these seem very likely) from:

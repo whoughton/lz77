@@ -1,6 +1,6 @@
 {
   "name": "lz77",
-  "version": "2.0.0-beta.4",
+  "version": "2.0.0",
   "description": "A typescript implementation of lz77, usable for node and browsers.",
   "main": "dist/index.js",
   "module": "dist/lz77.es.js",
