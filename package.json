@@ -1,11 +1,14 @@
 {
   "name": "lz77",
-  "version": "1.1.0",
-  "description": "A javascript implementation of lz77, usable for node, requirejs/AMD, and browsers...",
+  "version": "2.0.0-beta.0",
+  "description": "A typescript implementation of lz77, usable for node and browsers.",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/.bin/mocha tests/index.js",
-    "lint": "./node_modules/.bin/eslint index.js"
+    "build": "tsc",
+    "build:bundle": "vite build",
+    "test": "vitest run",
+    "lint": "./node_modules/.bin/eslint index.ts",
+    "docs": "typedoc --out docs/ index.ts"
   },
   "homepage": "http://whoughton.github.io/lz77/",
   "repository": {
@@ -23,11 +26,13 @@
   "bugs": {
     "url": "https://github.com/whoughton/lz77/issues"
   },
+  "type": "module",
   "dependencies": {},
   "devDependencies": {
-    "chai": "^3.4.1",
-    "eslint": "^1.10.3",
-    "mocha": "^2.3.4"
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0",
+    "typedoc": "^0.25.0",
+    "vite": "^5.0.0"
   },
   "eslintConfig": {
     "rules": {
@@ -73,5 +78,6 @@
       "define": true
     },
     "extends": "eslint:recommended"
-  }
+  },
+  "types": "dist/index.d.ts"
 }
