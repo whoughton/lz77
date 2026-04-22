@@ -255,6 +255,28 @@ it('cross-compressor output consistency', () => {
         }
       }
     });
+
+    it('round-trips with a reduced windowLength', () => {
+      const settings = { windowLength: 10 };
+      const input = 'abcde abcde abcde abcde';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input, settings);
+        if (typeof compressed === 'string') {
+          for (const d of decompressVariants) {
+            expect(d.fn(compressed, settings)).toBe(input);
+          }
+        }
+      }
+    });
+  });
+
+  describe('cross-compressor identical output', () => {
+    it('compressHash and compressRollingHash produce identical output', () => {
+      const input = 'the quick brown fox jumps over the lazy dog. the quick brown fox.';
+      const a = compressHashTable(input);
+      const b = compressRollingHash(input);
+      expect(a).toBe(b);
+    });
   });
 
   describe('encoding primitives', () => {
