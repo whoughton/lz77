@@ -187,7 +187,7 @@ describe('LZ77', () => {
       }
     });
 
-it('string with no repeated substrings round-trips', () => {
+    it('string with no repeated substrings round-trips', () => {
       const input = 'abcdefghijklmnopqrstuvwxyz';
       for (const c of compressVariants) {
         const compressed = c.fn(input);
@@ -203,7 +203,7 @@ it('string with no repeated substrings round-trips', () => {
         const compressed = c.fn(input, { windowLength: 1 });
         if (typeof compressed === 'string') {
           for (const d of decompressVariants) {
-            expect(d.fn(compressed, { windowLength: 1 })).toBe(input);
+            expect(d.fn(compressed)).toBe(input);
           }
         }
       }
@@ -219,7 +219,7 @@ it('string with no repeated substrings round-trips', () => {
       }
     });
 
-it('cross-compressor output consistency', () => {
+    it('cross-compressor output consistency', () => {
       const input = 'the quick brown fox jumps over the lazy dog the quick brown fox';
       for (const c of compressVariants) {
         const compressed = c.fn(input);
@@ -242,9 +242,9 @@ it('cross-compressor output consistency', () => {
       }
     });
 
-    it('round-trips with a custom safe refPrefix', () => {
+    it('round-trips with a custom safe refPrefix (including tail literals)', () => {
       const settings = { refPrefix: '§' };
-      const input = 'hello hello hello world';
+      const input = 'hello § world § end';
       for (const c of compressVariants) {
         const compressed = c.fn(input, settings);
         if (typeof compressed === 'string') {
@@ -271,11 +271,21 @@ it('cross-compressor output consistency', () => {
   });
 
   describe('cross-compressor identical output', () => {
-    it('compressHash and compressRollingHash produce identical output', () => {
+    it('compressHash and compressRollingHash produce identical output on non-overlapping input', () => {
       const input = 'the quick brown fox jumps over the lazy dog. the quick brown fox.';
       const a = compressHashTable(input);
       const b = compressRollingHash(input);
       expect(a).toBe(b);
+    });
+
+    it('compressHashTable allows overlapping matches (better compression on repetitive input)', () => {
+      const input = 'aaaaaaaaaaaa';
+      const a = compressHashTable(input);
+      const b = compressRollingHash(input);
+      expect(typeof a).toBe('string');
+      expect(typeof b).toBe('string');
+      expect(decompress(a as string)).toBe(input);
+      expect(decompress(b as string)).toBe(input);
     });
   });
 

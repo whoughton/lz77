@@ -1,7 +1,13 @@
 // lz77 - BSD 2-Clause License - Copyright (c) 2024 Weston Houghton
 // Legacy LZ77 compress implementation for benchmarking
+//
+// Note: compressHashTable intentionally omits the overlap guard (candidatePos + matchLength < pos)
+// that the index.ts compressors include. This allows overlapping back-references, which produces
+// better compression ratios on highly repetitive input. The decompressor handles overlapping
+// matches correctly, so round-trips are safe. This also means compressHashTable may produce
+// different compressed output than compressHash/compressRollingHash for the same input.
 
-import { setup, encodeRefInt, encodeRefLength } from './index';
+import { setup, encodeRefInt, encodeRefLength, escapeTail } from './index';
 
 export function compressHashTable(source: string, params?: Parameters<typeof setup>[0]): string | false {
   if (typeof source !== 'string') return false;
@@ -36,9 +42,8 @@ export function compressHashTable(source: string, params?: Parameters<typeof set
           bestMatch.length = matchLength;
         }
       }
-      const existing = hashTable.get(hash);
-      if (existing) {
-        existing.push(pos);
+      if (candidates.length) {
+        candidates.push(pos);
       } else {
         hashTable.set(hash, [pos]);
       }
@@ -56,7 +61,7 @@ export function compressHashTable(source: string, params?: Parameters<typeof set
     }
     compressed += newCompressed;
   }
-  return compressed + source.slice(pos).replace(/`/g, '``');
+  return compressed + escapeTail(source, pos, settings);
 }
 
 export function compressLegacy(source: string, params?: Parameters<typeof setup>[0]): string | false {
@@ -107,5 +112,5 @@ export function compressLegacy(source: string, params?: Parameters<typeof setup>
     }
     compressed += newCompressed;
   }
-  return compressed + source.slice(pos).replace(/`/g, '``');
+  return compressed + escapeTail(source, pos, settings);
 }

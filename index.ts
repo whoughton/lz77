@@ -99,6 +99,12 @@ function decodeRefLength(data: string, settings: LZ77Settings): number | null {
   return refInt + settings.minStringLength;
 }
 
+function escapeTail(source: string, pos: number, settings: LZ77Settings): string {
+  const escapedPrefix = settings.refPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(escapedPrefix, 'g');
+  return source.slice(pos).replace(re, settings.refPrefix + settings.refPrefix);
+}
+
 // Helper: Rabin-Karp rolling hash for substrings of length minStringLength
 function rollingHash(str: string, pos: number, len: number, prevHash?: number, prevChar?: string, nextChar?: string, basePower?: number): number {
   const base = 256;
@@ -116,6 +122,9 @@ function rollingHash(str: string, pos: number, len: number, prevHash?: number, p
     // Use modular multiplication to avoid precision loss for large basePower values.
     // Instead of (prevChar * basePower) % mod, compute (prevChar mod mod) * (basePower mod mod) mod mod
     // using Number arithmetic since both operands are < mod after reduction.
+    // Note: basePower is computed via Math.pow(256, len-1), which loses precision for len >= 9
+    // (since 256^8 = 2^64 exceeds 2^53). The default minStringLength=5 produces 256^4 = 2^32,
+    // which is exact. For minStringLength >= 9, the rolling hash may produce collisions.
     const power = basePower ?? Math.pow(base, len - 1);
     const powerMod = power % mod;
     const prevCharMod = prevChar.charCodeAt(0) % mod;
@@ -191,7 +200,7 @@ export function compressHash(source: string, params?: Partial<LZ77Settings>): st
     }
     compressed.push(newCompressed);
   }
-  return compressed.join('') + source.slice(pos).replace(/`/g, '``');
+  return compressed.join('') + escapeTail(source, pos, settings);
 }
 
 /**
@@ -350,7 +359,7 @@ export function compressRollingHash(source: string, params?: Partial<LZ77Setting
     }
     compressed.push(newCompressed);
   }
-  return compressed.join('') + source.slice(pos).replace(/`/g, '``');
+  return compressed.join('') + escapeTail(source, pos, settings);
 }
 
 /**
@@ -410,10 +419,10 @@ export function compressHybrid(source: string, params?: Partial<LZ77Settings>): 
     }
     compressed.push(newCompressed);
   }
-  return compressed.join('') + source.slice(pos).replace(/`/g, '``');
+  return compressed.join('') + escapeTail(source, pos, settings);
 }
 
 // Make compressHybrid the default compress
 export { compressHybrid as compress };
 
-export { setup, encodeRefInt, encodeRefLength, decodeRefInt, decodeRefLength };
+export { defaultSettings, setup, encodeRefInt, encodeRefLength, decodeRefInt, decodeRefLength, escapeTail };
