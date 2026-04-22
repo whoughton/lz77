@@ -12,7 +12,6 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true
   },
-  "include": ["index.ts", "index_legacy.ts", "bench.ts", "tests/**/*.ts"],
-  "exclude": ["node_modules", "dist"],
-  "bench": "node --loader ts-node/esm bench.ts"
+  "include": ["index.ts", "index_legacy.ts", "bench.ts", "bench-compare.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 } 

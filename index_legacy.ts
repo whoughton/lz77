@@ -61,7 +61,9 @@ function setup(params: Partial<LZ77Settings> = {}): LZ77Settings {
   const settings = extend({}, defaultSettings, params) as LZ77Settings;
   settings.refIntCeilCode = settings.refIntFloorCode + settings.refIntBase - 1;
   settings.maxStringDistance = Math.pow(settings.refIntBase, 2) - 1;
-  settings.maxStringLength = Math.pow(settings.refIntBase, 1) - 1 + settings.minStringLength;
+  // encodeRefInt(v, 1) requires v < refIntBase - 1 (max encodable value is refIntBase - 2),
+  // so the maximum safe match length is (refIntBase - 2) + minStringLength.
+  settings.maxStringLength = Math.pow(settings.refIntBase, 1) - 2 + settings.minStringLength;
   settings.maxWindow = settings.maxStringDistance + settings.minStringLength;
   return settings;
 }

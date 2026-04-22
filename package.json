@@ -16,7 +16,10 @@
     "test": "vitest run",
     "lint": "eslint . --ext .ts",
     "docs": "typedoc --out docs/ index.ts",
-    "bench": "npm run build && node dist/bench.js"
+    "bench": "tsx bench.ts",
+    "bench:save": "tsx bench.ts --json",
+    "bench:compare": "tsx bench-compare.ts",
+    "bench:ci": "tsx bench.ts --json --label ci"
   },
   "homepage": "http://whoughton.github.io/lz77/",
   "repository": {
@@ -37,10 +40,11 @@
   "type": "module",
   "devDependencies": {
     "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
     "typedoc": "^0.25.0",
     "typescript": "^5.4.5",
-    "vite": "^5.0.0",
-    "vitest": "^1.0.0"
+    "vite": "^8.0.9",
+    "vitest": "^4.1.5"
   },
   "eslintConfig": {
     "rules": {
