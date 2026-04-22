@@ -15,4 +15,18 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    include: ['tests/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['index.ts'],
+      exclude: ['index_legacy.ts', 'bench.ts', 'bench-compare.ts'],
+      thresholds: {
+        lines: 80,
+        functions: 90,
+        branches: 74,
+      },
+      reporter: ['text', 'lcov'],
+    },
+  },
 }); 

@@ -1,6 +1,30 @@
 ## LZ77
 *https://github.com/whoughton/lz77*
 
+### Version v2.1.0
+***
+**Release Date:** _2026-04-22_
+
+- **Critical fix:** Decompressor `pos` advance after references now uses the correct constant (4 bytes) instead of `minStringLength - 1`, fixing round-trip failures with non-default `minStringLength` values (#3).
+- **Security:** Added input validation to both `decompress` and `decompressLegacy` — malformed references, truncated input, invalid char codes, and distance/distance-zero errors now return `false` instead of producing corrupt output (#6).
+- **Correctness:** Restored overlap guard in `compressHash` and `compressRollingHash` to prevent self-referencing matches that the decompressor cannot handle (#9).
+- **Correctness:** Fixed rolling hash precision bug where `Math.pow(256, len-1)` exceeded `2^31-1` for `minStringLength >= 7` (#9).
+- **Correctness:** Fixed match extension bug in `compressHybrid` where overlapping matches were not properly guarded (#7).
+- **Performance:** Removed redundant O(N²) window scan from `compressHybrid` — it now uses hash-table lookups only, making it significantly faster (#7).
+- **Performance:** Switched `compressHybrid` and `compressRollingHash` to array accumulators (avoids O(n²) string concatenation) (#7).
+- **Performance:** Precomputed rolling hash base power; replaced `substr` with `substring` (#9).
+- **Type safety:** Removed all `any` types, non-null assertions, and custom `extend()` utility in favor of spread syntax (#8).
+- **Type safety:** Added `refPrefix` validation (must be single character) (#9).
+- **Decompression safety:** Added `maxDecompressedSize` setting to prevent unbounded memory allocation (#6).
+- **Testing:** Added 35 new tests covering edge cases, adversarial inputs, encoding primitives, custom settings, and cross-compressor consistency (#11, #12, #13, #14).
+- **Testing:** Un-skipped the `minStringLength=6` round-trip test that previously documented a known bug (#3, #13).
+- **Testing:** Added `encodeRefInt`, `decodeRefInt`, `encodeRefLength`, `decodeRefLength`, and `setup` as exported functions for testability (#14).
+- **CI:** Replaced eslint with oxlint for faster linting (#19).
+- **CI:** Added vitest coverage reporting with v8 provider and enforceable thresholds (#16).
+- **CI:** Updated Node.js CI matrix to 20.x and 22.x (vite 8 requires Node >=20.19).
+- **CI:** Added benchmark CI with baseline comparison and PR comments.
+- **Docs:** Regenerated TypeDoc output to include all new exports and `maxDecompressedSize` setting.
+
 ### Version v2.0.0
 ***
 **Release Date:** _2025-06-23_

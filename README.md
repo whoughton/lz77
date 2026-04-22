@@ -1,5 +1,5 @@
 ## LZ77
-### Version 2.0 - Typescript, Speed Improvements, New Methods Available
+### Version 2.1 - Correctness, Security, Performance, and Test Coverage
 ![CI](https://github.com/whoughton/lz77/actions/workflows/ci.yml/badge.svg)
 
 A TypeScript/ESM implementation of LZ77, usable for Node.js and modern browsers.
@@ -44,17 +44,18 @@ You can customize the behavior of compression and decompression by passing a par
 
 ```ts
 interface LZ77Settings {
-  refPrefix: string;         // Default: '`'   (backtick, used as reference marker)
-  refIntBase: number;        // Default: 96    (base for encoding reference integers)
-  refIntFloorCode: number;   // Default: 32    (char code for ' ')
-  minStringLength: number;   // Default: 5     (minimum match length)
-  defaultWindow: number;     // Default: 144   (sliding window size)
+  refPrefix: string;            // Default: '`'   (backtick, used as reference marker)
+  refIntBase: number;           // Default: 96    (base for encoding reference integers)
+  refIntFloorCode: number;      // Default: 32    (char code for ' ')
+  minStringLength: number;      // Default: 5     (minimum match length)
+  defaultWindow: number;        // Default: 144   (sliding window size)
   // Advanced/derived:
   refIntCeilCode?: number;
   maxStringDistance?: number;
   maxStringLength?: number;
   maxWindow?: number;
   windowLength?: number;
+  maxDecompressedSize?: number; // Default: Infinity (safety limit for decompression output)
 }
 ```
 
@@ -105,6 +106,39 @@ npm run docs
 
 This will generate HTML documentation in the `docs/` directory. Open `docs/index.html` in your browser to view the API docs for all exported functions and types.
 
+### Benchmarking
+
+#### Run benchmarks locally
+
+```sh
+npm run bench
+```
+
+Prints a table of ops/sec for all compressor and decompressor variants across three input fixtures (repetitive, prose, adversarial), plus compression ratios.
+
+#### Compare performance before and after a change
+
+Save a snapshot before making changes:
+
+```sh
+npm run bench:save -- --label before
+```
+
+Make your changes, then save another snapshot and compare:
+
+```sh
+npm run bench:save -- --label after
+npm run bench:compare -- bench-before.json bench-after.json
+```
+
+The comparison table flags regressions: ⚠ for ≥10% slower, ✗ for ≥20% slower (exits non-zero). Snapshot files are gitignored.
+
+#### CI benchmark tracking
+
+Every push to `main` stores benchmark results to the `gh-pages` branch via [github-action-benchmark](https://github.com/benchmark-action/github-action-benchmark). The historical chart is published at [whoughton.github.io/lz77/dev/bench/](https://whoughton.github.io/lz77/dev/bench/).
+
+On pull requests, a comment is automatically posted if any metric regresses by more than 23% against the stored baseline. Raw results are also uploaded as a CI artifact with 90-day retention.
+
 > **Note:** This implementation is lossless and round-trip safe: `decompress(compress(input)) === input` for all valid input. However, the exact compressed output may differ from previous versions or other LZ77 implementations, as there are multiple valid ways to encode the same data.
 >
 > **Compression output length:** The optimized version may produce compressed outputs of different lengths compared to the legacy version. This is due to differences in how matches are found and selected, which is normal for LZ77. All outputs are valid and will decompress to the original input.
@@ -149,8 +183,7 @@ This will create:
 
 > **Performance note:** In JavaScript, the substring hash table method (`compress`) is generally faster than the rolling hash (Rabin-Karp, `compressRollingHash`) method, even for very large inputs. This is because JavaScript engines highly optimize string operations, making direct substring hashing extremely efficient. Benchmarks in this repository confirm that the rolling hash does not outperform the substring hash table approach in practice. The rolling hash version is included mainly for reference and educational purposes.
 
-- The legacy compressor is fully correct but slow; hash table/optimized methods (compress, compressHashTable) are fast but may miss rare edge cases (see below).
-- The compress (default) method is now always fully correct and round-trip safe (uses compressHybrid internally). compressHash is available for advanced users who want maximum speed and are willing to accept rare edge cases. Debug output has been removed in the latest version.
+- All compress methods (`compress`, `compressHash`, `compressRollingHash`, `compressHybrid`, `compressHashTable`, `compressLegacy`) are round-trip safe with the decompress functions. The `compress` alias defaults to `compressHybrid`, which uses hash-table lookups for performance. `compressHash` and `compressHashTable` are available for advanced users who want maximum speed with the simplest implementation. Debug output has been removed.
 
 ## License
 

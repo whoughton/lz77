@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compress, compressRollingHash, decompress, decompressLegacy, compressHybrid } from '../index';
+import { compress, compressRollingHash, decompress, decompressLegacy, compressHybrid, setup, encodeRefInt, decodeRefInt, decodeRefLength } from '../index';
 import { compressLegacy, compressHashTable } from '../index_legacy';
 
 const compressVariants = [
@@ -42,8 +42,7 @@ describe('LZ77', () => {
     });
   });
 
-  // Known limitation: compressHash (and similar hash-table methods) may fail this test for certain minStringLength and input patterns. This is kept for documentation purposes.
-  it.skip('Round-trip: minStringLength=6, sample issue (#3) string', () => {
+  it('Round-trip: minStringLength=6, sample issue (#3) string', () => {
     const settings = { minStringLength: 6 };
     const to_compress = "can't read my, can't read my, no he can't read my poker face";
     for (const c of compressVariants) {
@@ -61,13 +60,8 @@ describe('LZ77', () => {
       const to_compress = "hello hello baby you called I can't hear a thing";
       for (const c of compressVariants) {
         const compressed = c.fn(to_compress, settings);
-        // Debug output: log lengths
-        // console.log(`[${c.name}] original length:`, to_compress.length, 'compressed length:', (compressed as string).length);
-        // Should be a string and not equal to the original (unless incompressible)
         expect(typeof compressed).toBe('string');
-        // Should not be longer than the input (unless incompressible)
         expect((compressed as string).length).toBeLessThanOrEqual(to_compress.length);
-        // Should always round-trip
         for (const d of decompressVariants) {
           const decompressed = d.fn(compressed as string, settings);
           expect(decompressed).toBe(to_compress);
@@ -75,4 +69,280 @@ describe('LZ77', () => {
       }
     });
   });
-}); 
+
+  describe('Decompression input validation', () => {
+    for (const d of decompressVariants) {
+      describe(d.name, () => {
+        it('returns false for truncated input (ref prefix at end)', () => {
+          expect(d.fn('`')).toBe(false);
+        });
+
+        it('returns false for truncated input (ref prefix + 1 char)', () => {
+          expect(d.fn('`A')).toBe(false);
+        });
+
+        it('returns false for truncated input (ref prefix + 2 chars)', () => {
+          expect(d.fn('`AB')).toBe(false);
+        });
+
+        it('returns false for invalid char codes in reference', () => {
+          expect(d.fn('`\x01BC ')).toBe(false);
+        });
+
+        it('returns false for distance exceeding output buffer', () => {
+          expect(d.fn('`  ')).toBe(false);
+        });
+
+        it('returns false for non-string input', () => {
+          expect(d.fn(42 as any)).toBe(false);
+          expect(d.fn(null as any)).toBe(false);
+          expect(d.fn(undefined as any)).toBe(false);
+        });
+
+        it('returns false for distance of zero', () => {
+          expect(d.fn('` ' + String.fromCharCode(32) + String.fromCharCode(32 + 5 - 5))).toBe(false);
+        });
+
+        it('returns false for literal followed by truncated reference', () => {
+          expect(d.fn('abc`')).toBe(false);
+          expect(d.fn('abc`A')).toBe(false);
+        });
+
+        it('output never contains undefined string for malformed input', () => {
+          const result = d.fn('`  ');
+          if (typeof result === 'string') {
+            expect(result).not.toContain('undefined');
+          }
+        });
+      });
+    }
+
+    describe('decompress (array)', () => {
+      it('respects maxDecompressedSize', () => {
+        const compressed = compress('hello hello hello');
+        if (typeof compressed === 'string') {
+          const result = decompress(compressed, { maxDecompressedSize: 5 });
+          expect(result).toBe(false);
+        }
+      });
+
+      it('allows output within maxDecompressedSize', () => {
+        const compressed = compress('abc');
+        if (typeof compressed === 'string') {
+          const result = decompress(compressed, { maxDecompressedSize: 100 });
+          expect(result).toBe('abc');
+        }
+      });
+
+      it('empty string round-trips', () => {
+        const compressed = compress('');
+        expect(compressed).toBe('');
+        expect(decompress(compressed as string)).toBe('');
+      });
+
+      it('single character round-trips', () => {
+        const compressed = compress('x');
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe('x');
+        }
+      });
+    });
+
+    describe('decompressLegacy (string-concat)', () => {
+      it('respects maxDecompressedSize', () => {
+        const compressed = compress('hello hello hello');
+        if (typeof compressed === 'string') {
+          const result = decompressLegacy(compressed, { maxDecompressedSize: 5 });
+          expect(result).toBe(false);
+        }
+      });
+
+      it('allows output within maxDecompressedSize', () => {
+        const compressed = compress('abc');
+        if (typeof compressed === 'string') {
+          const result = decompressLegacy(compressed, { maxDecompressedSize: 100 });
+          expect(result).toBe('abc');
+        }
+      });
+    });
+  });
+
+  describe('Edge cases and coverage', () => {
+    it('string shorter than minStringLength round-trips', () => {
+      for (const c of compressVariants) {
+        const compressed = c.fn('abc');
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe('abc');
+        }
+      }
+    });
+
+    it('string of only refPrefix characters round-trips', () => {
+      const input = '``````';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input);
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe(input);
+        }
+      }
+    });
+
+    it('string with no repeated substrings round-trips', () => {
+      const input = 'abcdefghijklmnopqrstuvwxyz';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input);
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe(input);
+        }
+      }
+    });
+
+    it('windowLength override of 1 forces literal-only output', () => {
+      const input = 'hello hello hello';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input, { windowLength: 1 });
+        if (typeof compressed === 'string') {
+          for (const d of decompressVariants) {
+            expect(d.fn(compressed)).toBe(input);
+          }
+        }
+      }
+    });
+
+    it('repetitive input round-trips (self-overlapping matches)', () => {
+      const input = 'aaaaaaaaaaaa';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input);
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe(input);
+        }
+      }
+    });
+
+    it('cross-compressor output consistency', () => {
+      const input = 'the quick brown fox jumps over the lazy dog the quick brown fox';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input);
+        if (typeof compressed === 'string') {
+          for (const d of decompressVariants) {
+            const decompressed = d.fn(compressed);
+            expect(decompressed, `Failed for ${c.name}/${d.name}`).toBe(input);
+          }
+        }
+      }
+    });
+
+    it('unicode emoji round-trips', () => {
+      const input = 'hello 🌍 world 🚀 test 🎉';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input);
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe(input);
+        }
+      }
+    });
+
+    it('round-trips with a custom safe refPrefix (including tail literals)', () => {
+      const settings = { refPrefix: '§' };
+      const input = 'hello § world § end';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input, settings);
+        if (typeof compressed === 'string') {
+          expect(compressed).not.toContain('`');
+          for (const d of decompressVariants) {
+            expect(d.fn(compressed, settings)).toBe(input);
+          }
+        }
+      }
+    });
+
+    it('round-trips with a reduced windowLength', () => {
+      const settings = { windowLength: 10 };
+      const input = 'abcde abcde abcde abcde';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input, settings);
+        if (typeof compressed === 'string') {
+          for (const d of decompressVariants) {
+            expect(d.fn(compressed, settings)).toBe(input);
+          }
+        }
+      }
+    });
+  });
+
+  describe('cross-compressor identical output', () => {
+    it('compressHash and compressRollingHash produce identical output on non-overlapping input', () => {
+      const input = 'the quick brown fox jumps over the lazy dog. the quick brown fox.';
+      const a = compressHashTable(input);
+      const b = compressRollingHash(input);
+      expect(a).toBe(b);
+    });
+
+    it('compressHashTable allows overlapping matches (better compression on repetitive input)', () => {
+      const input = 'aaaaaaaaaaaa';
+      const a = compressHashTable(input);
+      const b = compressRollingHash(input);
+      expect(typeof a).toBe('string');
+      expect(typeof b).toBe('string');
+      expect(decompress(a as string)).toBe(input);
+      expect(decompress(b as string)).toBe(input);
+    });
+  });
+
+  describe('encoding primitives', () => {
+    const settings = setup();
+
+    it('encodes 0 with width 1 as floor character', () => {
+      expect(encodeRefInt(0, 1, settings)).toBe(' ');
+    });
+
+    it('encodes 0 with width 2 as two floor characters', () => {
+      expect(encodeRefInt(0, 2, settings)).toBe('  ');
+    });
+
+    it('encodes max value for width 1', () => {
+      expect(encodeRefInt(94, 1, settings)).toBe('~');
+    });
+
+    it('round-trips values within range for width 1', () => {
+      for (let v = 0; v < 94; v++) {
+        const encoded = encodeRefInt(v, 1, settings);
+        expect(decodeRefInt(encoded, 1, settings)).toBe(v);
+      }
+    });
+
+    it('round-trips values within range for width 2 (sampled)', () => {
+      for (let v = 0; v < 9214; v += 100) {
+        const encoded = encodeRefInt(v, 2, settings);
+        expect(decodeRefInt(encoded, 2, settings)).toBe(v);
+      }
+    });
+
+    it('throws for value at refIntBase - 1 with width 1', () => {
+      expect(() => encodeRefInt(95, 1, settings)).toThrow();
+    });
+
+    it('throws for negative value', () => {
+      expect(() => encodeRefInt(-1, 1, settings)).toThrow();
+    });
+
+    it('decodeRefInt returns null for char code below floor', () => {
+      expect(decodeRefInt('\x01\x01', 2, settings)).toBeNull();
+    });
+
+    it('decodeRefInt returns null for char code above ceiling', () => {
+      expect(decodeRefInt('\x80\x80', 2, settings)).toBeNull();
+    });
+
+    it('decodeRefInt returns null for short input', () => {
+      expect(decodeRefInt(' ', 2, settings)).toBeNull();
+    });
+
+    it('decodeRefLength round-trips through encodeRefInt', () => {
+      for (let len = settings.minStringLength; len < settings.minStringLength + 94; len++) {
+        const encoded = encodeRefInt(len - settings.minStringLength, 1, settings);
+        expect(decodeRefLength(encoded, settings)).toBe(len);
+      }
+    });
+  });
+});

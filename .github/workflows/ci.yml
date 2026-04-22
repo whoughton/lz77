@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   test:
@@ -12,13 +12,60 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [20.x, 22.x]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm install
-      - run: npm test 
+      - run: npm test
+      - run: npm run coverage
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ matrix.node-version }}
+          path: coverage/lcov.info
+
+  benchmark:
+    runs-on: ubuntu-latest
+    # Run on Node 20 only — benchmark consistency matters more than matrix coverage
+    permissions:
+      contents: write      # needed to push results to gh-pages
+      pull-requests: write # needed to post comparison comments on PRs
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - run: npm install
+
+      - name: Run benchmarks
+        run: npm run bench:ci
+
+      - name: Upload benchmark artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: bench-ci.json
+          retention-days: 90
+
+      - name: Restore package-lock.json
+        run: git checkout -- package-lock.json
+
+      - name: Store results / compare against baseline
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: customBiggerIsBetter
+          output-file-path: bench-ci.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          alert-threshold: '130%'
+          fail-on-alert: false
+          comment-on-alert: true
+          alert-comment-cc-users: '@whoughton'
+          benchmark-data-dir-path: dev/bench
