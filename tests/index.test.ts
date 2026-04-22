@@ -61,13 +61,8 @@ describe('LZ77', () => {
       const to_compress = "hello hello baby you called I can't hear a thing";
       for (const c of compressVariants) {
         const compressed = c.fn(to_compress, settings);
-        // Debug output: log lengths
-        // console.log(`[${c.name}] original length:`, to_compress.length, 'compressed length:', (compressed as string).length);
-        // Should be a string and not equal to the original (unless incompressible)
         expect(typeof compressed).toBe('string');
-        // Should not be longer than the input (unless incompressible)
         expect((compressed as string).length).toBeLessThanOrEqual(to_compress.length);
-        // Should always round-trip
         for (const d of decompressVariants) {
           const decompressed = d.fn(compressed as string, settings);
           expect(decompressed).toBe(to_compress);
@@ -75,4 +70,85 @@ describe('LZ77', () => {
       }
     });
   });
-}); 
+
+  describe('Decompression input validation', () => {
+    for (const d of decompressVariants) {
+      describe(d.name, () => {
+        it('returns false for truncated input (ref prefix at end)', () => {
+          expect(d.fn('`')).toBe(false);
+        });
+
+        it('returns false for truncated input (ref prefix + 1 char)', () => {
+          expect(d.fn('`A')).toBe(false);
+        });
+
+        it('returns false for truncated input (ref prefix + 2 chars)', () => {
+          expect(d.fn('`AB')).toBe(false);
+        });
+
+        it('returns false for invalid char codes in reference', () => {
+          expect(d.fn('`\x01BC ')).toBe(false);
+        });
+
+        it('returns false for distance exceeding output buffer', () => {
+          expect(d.fn('`  ')).toBe(false);
+        });
+
+        it('returns false for non-string input', () => {
+          expect(d.fn(42 as any)).toBe(false);
+          expect(d.fn(null as any)).toBe(false);
+          expect(d.fn(undefined as any)).toBe(false);
+        });
+      });
+    }
+
+    describe('decompress (array)', () => {
+      it('respects maxDecompressedSize', () => {
+        const compressed = compress('hello hello hello');
+        if (typeof compressed === 'string') {
+          const result = decompress(compressed, { maxDecompressedSize: 5 });
+          expect(result).toBe(false);
+        }
+      });
+
+      it('allows output within maxDecompressedSize', () => {
+        const compressed = compress('abc');
+        if (typeof compressed === 'string') {
+          const result = decompress(compressed, { maxDecompressedSize: 100 });
+          expect(result).toBe('abc');
+        }
+      });
+
+      it('empty string round-trips', () => {
+        const compressed = compress('');
+        expect(compressed).toBe('');
+        expect(decompress(compressed as string)).toBe('');
+      });
+
+      it('single character round-trips', () => {
+        const compressed = compress('x');
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe('x');
+        }
+      });
+    });
+
+    describe('decompressLegacy (string-concat)', () => {
+      it('respects maxDecompressedSize', () => {
+        const compressed = compress('hello hello hello');
+        if (typeof compressed === 'string') {
+          const result = decompressLegacy(compressed, { maxDecompressedSize: 5 });
+          expect(result).toBe(false);
+        }
+      });
+
+      it('allows output within maxDecompressedSize', () => {
+        const compressed = compress('abc');
+        if (typeof compressed === 'string') {
+          const result = decompressLegacy(compressed, { maxDecompressedSize: 100 });
+          expect(result).toBe('abc');
+        }
+      });
+    });
+  });
+});

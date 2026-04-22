@@ -27,6 +27,7 @@ export interface LZ77Settings {
   defaultWindow: number;
   maxWindow?: number;
   windowLength?: number;
+  maxDecompressedSize?: number;
 }
 
 const defaultSettings: LZ77Settings = {
@@ -39,7 +40,8 @@ const defaultSettings: LZ77Settings = {
   maxStringLength: undefined,
   defaultWindow: 144,
   maxWindow: undefined,
-  windowLength: undefined
+  windowLength: undefined,
+  maxDecompressedSize: undefined
 };
 
 type AnyObject = Record<string, any>;
@@ -104,7 +106,8 @@ function encodeRefLength(length: number, settings: LZ77Settings): string {
   return encodeRefInt(length - settings.minStringLength, 1, settings);
 }
 
-function decodeRefInt(data: string, width: number, settings: LZ77Settings): number {
+function decodeRefInt(data: string, width: number, settings: LZ77Settings): number | null {
+  if (data.length < width) return null;
   let value = 0;
   let charCode;
   for (let i = 0; i < width; i++) {
@@ -113,14 +116,16 @@ function decodeRefInt(data: string, width: number, settings: LZ77Settings): numb
     if (charCode >= settings.refIntFloorCode && charCode <= (settings.refIntCeilCode as number)) {
       value += charCode - settings.refIntFloorCode;
     } else {
-      throw new Error('Invalid char code in reference int: ' + charCode);
+      return null;
     }
   }
   return value;
 }
 
-function decodeRefLength(data: string, settings: LZ77Settings): number {
-  return decodeRefInt(data, 1, settings) + settings.minStringLength;
+function decodeRefLength(data: string, settings: LZ77Settings): number | null {
+  const refInt = decodeRefInt(data, 1, settings);
+  if (refInt === null) return null;
+  return refInt + settings.minStringLength;
 }
 
 // Helper: Rabin-Karp rolling hash for substrings of length minStringLength
@@ -212,30 +217,37 @@ export function compressHash(source: string, params?: Partial<LZ77Settings>): st
  * Decompress a string using LZ77 algorithm.
  * @param source The compressed string to decompress.
  * @param params Optional settings to override defaults.
- * @returns The decompressed string, or false if input is not a string.
+ * @returns The decompressed string, or false if input is invalid or malformed.
  */
 export function decompress(source: string, params?: Partial<LZ77Settings>): string | false {
-  if (Object.prototype.toString.call(source) !== '[object String]') return false;
+  if (typeof source !== 'string') return false;
+  const settings = setup(params);
+  const maxSize = settings.maxDecompressedSize ?? Infinity;
   let out: string[] = [];
   let pos = 0;
-  let currentChar: string, nextChar: string, distance: number, length: number;
-  const settings = setup(params);
   while (pos < source.length) {
-    currentChar = source.charAt(pos);
+    const currentChar = source.charAt(pos);
     if (currentChar !== settings.refPrefix) {
+      if (out.length >= maxSize) return false;
       out.push(currentChar);
       pos++;
     } else {
-      nextChar = source.charAt(pos + 1);
+      if (pos + 1 >= source.length) return false;
+      const nextChar = source.charAt(pos + 1);
       if (nextChar !== settings.refPrefix) {
-        distance = decodeRefInt(source.substr(pos + 1, 2), 2, settings);
-        length = decodeRefLength(source.charAt(pos + 3), settings);
+        if (pos + 3 >= source.length) return false;
+        const distance = decodeRefInt(source.substring(pos + 1, pos + 3), 2, settings);
+        const length = decodeRefLength(source.charAt(pos + 3), settings);
+        if (distance === null || length === null) return false;
+        if (distance > out.length || distance < 1) return false;
+        if (out.length + length > maxSize) return false;
         const start = out.length - distance;
         for (let i = 0; i < length; i++) {
           out.push(out[start + i]);
         }
         pos += settings.minStringLength - 1;
       } else {
+        if (out.length >= maxSize) return false;
         out.push(settings.refPrefix);
         pos += 2;
       }
@@ -248,27 +260,34 @@ export function decompress(source: string, params?: Partial<LZ77Settings>): stri
  * Legacy decompress: string concatenation version (for benchmarking)
  */
 export function decompressLegacy(source: string, params?: Partial<LZ77Settings>): string | false {
-  if (Object.prototype.toString.call(source) !== '[object String]') return false;
+  if (typeof source !== 'string') return false;
+  const settings = setup(params);
+  const maxSize = settings.maxDecompressedSize ?? Infinity;
   let decompressed = '';
   let pos = 0;
-  let currentChar: string, nextChar: string, distance: number, length: number;
-  const settings = setup(params);
   while (pos < source.length) {
-    currentChar = source.charAt(pos);
+    const currentChar = source.charAt(pos);
     if (currentChar !== settings.refPrefix) {
+      if (decompressed.length >= maxSize) return false;
       decompressed += currentChar;
       pos++;
     } else {
-      nextChar = source.charAt(pos + 1);
+      if (pos + 1 >= source.length) return false;
+      const nextChar = source.charAt(pos + 1);
       if (nextChar !== settings.refPrefix) {
-        distance = decodeRefInt(source.substr(pos + 1, 2), 2, settings);
-        length = decodeRefLength(source.charAt(pos + 3), settings);
+        if (pos + 3 >= source.length) return false;
+        const distance = decodeRefInt(source.substring(pos + 1, pos + 3), 2, settings);
+        const length = decodeRefLength(source.charAt(pos + 3), settings);
+        if (distance === null || length === null) return false;
+        if (distance > decompressed.length || distance < 1) return false;
+        if (decompressed.length + length > maxSize) return false;
         const start = decompressed.length - distance;
         for (let i = 0; i < length; i++) {
           decompressed += decompressed.charAt(start + i);
         }
         pos += settings.minStringLength - 1;
       } else {
+        if (decompressed.length >= maxSize) return false;
         decompressed += settings.refPrefix;
         pos += 2;
       }
