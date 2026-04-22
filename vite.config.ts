@@ -22,9 +22,9 @@ export default defineConfig({
       include: ['index.ts'],
       exclude: ['index_legacy.ts', 'bench.ts', 'bench-compare.ts'],
       thresholds: {
-        lines: 75,
+        lines: 80,
         functions: 90,
-        branches: 60,
+        branches: 74,
       },
       reporter: ['text', 'lcov'],
     },
