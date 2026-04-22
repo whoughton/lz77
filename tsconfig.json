@@ -12,6 +12,6 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true
   },
-  "include": ["index.ts", "index_legacy.ts", "bench.ts", "bench-compare.ts", "tests/**/*.ts"],
+  "include": ["index.ts", "index_legacy.ts", "bench.ts", "bench-compare.ts"],
   "exclude": ["node_modules", "dist"]
 } 
