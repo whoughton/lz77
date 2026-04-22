@@ -172,7 +172,29 @@ describe('LZ77', () => {
       }
     });
 
-it('repetitive input round-trips (self-overlapping matches)', () => {
+it('string with no repeated substrings round-trips', () => {
+      const input = 'abcdefghijklmnopqrstuvwxyz';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input);
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe(input);
+        }
+      }
+    });
+
+    it('windowLength override of 1 forces literal-only output', () => {
+      const input = 'hello hello hello';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input, { windowLength: 1 });
+        if (typeof compressed === 'string') {
+          for (const d of decompressVariants) {
+            expect(d.fn(compressed, { windowLength: 1 })).toBe(input);
+          }
+        }
+      }
+    });
+
+    it('repetitive input round-trips (self-overlapping matches)', () => {
       const input = 'aaaaaaaaaaaa';
       for (const c of compressVariants) {
         const compressed = c.fn(input);
