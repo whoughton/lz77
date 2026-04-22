@@ -105,6 +105,39 @@ npm run docs
 
 This will generate HTML documentation in the `docs/` directory. Open `docs/index.html` in your browser to view the API docs for all exported functions and types.
 
+### Benchmarking
+
+#### Run benchmarks locally
+
+```sh
+npm run bench
+```
+
+Prints a table of ops/sec for all compressor and decompressor variants across three input fixtures (repetitive, prose, adversarial), plus compression ratios.
+
+#### Compare performance before and after a change
+
+Save a snapshot before making changes:
+
+```sh
+npm run bench:save -- --label before
+```
+
+Make your changes, then save another snapshot and compare:
+
+```sh
+npm run bench:save -- --label after
+npm run bench:compare -- bench-before.json bench-after.json
+```
+
+The comparison table flags regressions: ⚠ for ≥10% slower, ✗ for ≥20% slower (exits non-zero). Snapshot files are gitignored.
+
+#### CI benchmark tracking
+
+Every push to `main` stores benchmark results to the `gh-pages` branch via [github-action-benchmark](https://github.com/benchmark-action/github-action-benchmark). The historical chart is published at [whoughton.github.io/lz77/dev/bench/](https://whoughton.github.io/lz77/dev/bench/).
+
+On pull requests, a comment is automatically posted if any metric regresses by more than 23% against the stored baseline. Raw results are also uploaded as a CI artifact with 90-day retention.
+
 > **Note:** This implementation is lossless and round-trip safe: `decompress(compress(input)) === input` for all valid input. However, the exact compressed output may differ from previous versions or other LZ77 implementations, as there are multiple valid ways to encode the same data.
 >
 > **Compression output length:** The optimized version may produce compressed outputs of different lengths compared to the legacy version. This is due to differences in how matches are found and selected, which is normal for LZ77. All outputs are valid and will decompress to the original input.
