@@ -46,6 +46,9 @@ const defaultSettings: LZ77Settings = {
 
 function setup(params: Partial<LZ77Settings> = {}): LZ77Settings {
   const settings: LZ77Settings = { ...defaultSettings, ...params };
+  if (settings.refPrefix.length !== 1) {
+    throw new Error('refPrefix must be a single character');
+  }
   settings.refIntCeilCode = settings.refIntFloorCode + settings.refIntBase - 1;
   settings.maxStringDistance = Math.pow(settings.refIntBase, 2) - 1;
   settings.maxStringLength = Math.pow(settings.refIntBase, 1) - 2 + settings.minStringLength;
@@ -110,9 +113,15 @@ function rollingHash(str: string, pos: number, len: number, prevHash?: number, p
     if (prevChar === undefined || nextChar === undefined) {
       throw new Error('Rolling hash update requires prevChar and nextChar');
     }
+    // Use modular multiplication to avoid precision loss for large basePower values.
+    // Instead of (prevChar * basePower) % mod, compute (prevChar mod mod) * (basePower mod mod) mod mod
+    // using Number arithmetic since both operands are < mod after reduction.
     const power = basePower ?? Math.pow(base, len - 1);
-    let hash = prevHash;
-    hash = (hash - (prevChar.charCodeAt(0) * power) % mod + mod) % mod;
+    const powerMod = power % mod;
+    const prevCharMod = prevChar.charCodeAt(0) % mod;
+    // Multiply using Number — both factors < mod < 2^31, product < 2^62 which is safe
+    const subtrahend = (prevCharMod * powerMod) % mod;
+    let hash = (prevHash - subtrahend + mod) % mod;
     hash = (hash * base + nextChar.charCodeAt(0)) % mod;
     return hash;
   }
@@ -120,7 +129,7 @@ function rollingHash(str: string, pos: number, len: number, prevHash?: number, p
 
 // Helper: Hash a substring of length minStringLength (for hash-table, non-rolling version)
 function hashSubstring(str: string, pos: number, len: number): string {
-  return str.substr(pos, len);
+  return str.substring(pos, pos + len);
 }
 
 /**
@@ -280,7 +289,7 @@ export function compressRollingHash(source: string, params?: Partial<LZ77Setting
   const hashTable: Map<number, number[]> = new Map();
   const minLen = settings.minStringLength;
   const maxLen = settings.maxStringLength;
-  const basePower = Math.pow(256, minLen - 1);
+  const basePower = Math.pow(256, minLen - 1) % (2 ** 31 - 1);
   let prevHash: number | undefined = undefined;
   while (pos < lastPos) {
     const windowStart = Math.max(pos - windowLength, 0);
@@ -310,7 +319,8 @@ export function compressRollingHash(source: string, params?: Partial<LZ77Setting
           let matchLength = minLen;
           while (
             matchLength < maxLen &&
-            source.charAt(candidatePos + matchLength) === source.charAt(pos + matchLength)
+            source.charAt(candidatePos + matchLength) === source.charAt(pos + matchLength) &&
+            candidatePos + matchLength < pos
           ) {
             matchLength++;
           }
@@ -405,3 +415,5 @@ export function compressHybrid(source: string, params?: Partial<LZ77Settings>): 
 
 // Make compressHybrid the default compress
 export { compressHybrid as compress };
+
+export { setup, encodeRefInt, encodeRefLength };

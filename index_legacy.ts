@@ -1,68 +1,9 @@
 // lz77 - BSD 2-Clause License - Copyright (c) 2024 Weston Houghton
 // Legacy LZ77 compress implementation for benchmarking
 
-interface LZ77Settings {
-  refPrefix: string;
-  refIntBase: number;
-  refIntFloorCode: number;
-  refIntCeilCode: number;
-  maxStringDistance: number;
-  minStringLength: number;
-  maxStringLength: number;
-  defaultWindow: number;
-  maxWindow: number;
-  windowLength?: number;
-}
+import { setup, encodeRefInt, encodeRefLength } from './index';
 
-const defaultSettings: LZ77Settings = {
-  refPrefix: '`',
-  refIntBase: 96,
-  refIntFloorCode: ' '.charCodeAt(0),
-  refIntCeilCode: 0,
-  maxStringDistance: 0,
-  minStringLength: 5,
-  maxStringLength: 0,
-  defaultWindow: 144,
-  maxWindow: 0,
-  windowLength: undefined
-};
-
-function setup(params: Partial<LZ77Settings> = {}): LZ77Settings {
-  const settings: LZ77Settings = { ...defaultSettings, ...params };
-  settings.refIntCeilCode = settings.refIntFloorCode + settings.refIntBase - 1;
-  settings.maxStringDistance = Math.pow(settings.refIntBase, 2) - 1;
-  settings.maxStringLength = Math.pow(settings.refIntBase, 1) - 2 + settings.minStringLength;
-  settings.maxWindow = settings.maxStringDistance + settings.minStringLength;
-  return settings;
-}
-
-function encodeRefInt(value: number, width: number, settings: LZ77Settings): string {
-  if (value >= 0 && value < Math.pow(settings.refIntBase, width) - 1) {
-    let encoded = '';
-    while (value > 0) {
-      encoded = String.fromCharCode((value % settings.refIntBase) + settings.refIntFloorCode) + encoded;
-      value = Math.floor(value / settings.refIntBase);
-    }
-    const missingLength = width - encoded.length;
-    for (let i = 0; i < missingLength; i++) {
-      encoded = String.fromCharCode(settings.refIntFloorCode) + encoded;
-    }
-    return encoded;
-  } else {
-    throw new Error('Reference int out of range: ' + value + ' (width = ' + width + ')');
-  }
-}
-
-function encodeRefLength(length: number, settings: LZ77Settings): string {
-  return encodeRefInt(length - settings.minStringLength, 1, settings);
-}
-
-// Helper: Hash a substring of length minStringLength (for hash-table, non-rolling version)
-function hashSubstring(str: string, pos: number, len: number): string {
-  return str.substr(pos, len);
-}
-
-export function compressHashTable(source: string, params?: Partial<LZ77Settings>): string | false {
+export function compressHashTable(source: string, params?: Parameters<typeof setup>[0]): string | false {
   if (typeof source !== 'string') return false;
   const settings = setup(params);
   const windowLength = settings.windowLength || settings.defaultWindow;
@@ -78,7 +19,7 @@ export function compressHashTable(source: string, params?: Partial<LZ77Settings>
     let bestMatch = { distance: settings.maxStringDistance, length: 0 };
     let newCompressed: string | null = null;
     if (pos + minLen <= source.length) {
-      const hash = hashSubstring(source, pos, minLen);
+      const hash = source.substring(pos, pos + minLen);
       const candidates = hashTable.get(hash) || [];
       for (let i = candidates.length - 1; i >= 0; i--) {
         const candidatePos = candidates[i];
@@ -95,11 +36,11 @@ export function compressHashTable(source: string, params?: Partial<LZ77Settings>
           bestMatch.length = matchLength;
         }
       }
-      const candidates2 = hashTable.get(hash);
-      if (!candidates2) {
-        hashTable.set(hash, [pos]);
+      const existing = hashTable.get(hash);
+      if (existing) {
+        existing.push(pos);
       } else {
-        candidates2.push(pos);
+        hashTable.set(hash, [pos]);
       }
     }
     if (bestMatch.length) {
@@ -118,7 +59,7 @@ export function compressHashTable(source: string, params?: Partial<LZ77Settings>
   return compressed + source.slice(pos).replace(/`/g, '``');
 }
 
-export function compressLegacy(source: string, params?: Partial<LZ77Settings>): string | false {
+export function compressLegacy(source: string, params?: Parameters<typeof setup>[0]): string | false {
   if (typeof source !== 'string') return false;
   const settings = setup(params);
   const windowLength = settings.windowLength || settings.defaultWindow;
@@ -138,7 +79,7 @@ export function compressLegacy(source: string, params?: Partial<LZ77Settings>): 
     let isValidMatch: boolean;
     let realMatchLength: number;
     while ((searchStart + matchLength) < pos) {
-      isValidMatch = (source.substr(searchStart, matchLength) === source.substr(pos, matchLength)) && (matchLength < settings.maxStringLength);
+      isValidMatch = (source.substring(searchStart, searchStart + matchLength) === source.substring(pos, pos + matchLength)) && (matchLength < settings.maxStringLength);
       if (isValidMatch) {
         matchLength++;
         foundMatch = true;

@@ -151,4 +151,58 @@ describe('LZ77', () => {
       });
     });
   });
+
+  describe('Edge cases and coverage', () => {
+    it('string shorter than minStringLength round-trips', () => {
+      for (const c of compressVariants) {
+        const compressed = c.fn('abc');
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe('abc');
+        }
+      }
+    });
+
+    it('string of only refPrefix characters round-trips', () => {
+      const input = '``````';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input);
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe(input);
+        }
+      }
+    });
+
+it('repetitive input round-trips (self-overlapping matches)', () => {
+      const input = 'aaaaaaaaaaaa';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input);
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe(input);
+        }
+      }
+    });
+
+it('cross-compressor output consistency', () => {
+      const input = 'the quick brown fox jumps over the lazy dog the quick brown fox';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input);
+        if (typeof compressed === 'string') {
+          for (const d of decompressVariants) {
+            const decompressed = d.fn(compressed);
+            expect(decompressed, `Failed for ${c.name}/${d.name}`).toBe(input);
+          }
+        }
+      }
+    });
+
+    it('unicode emoji round-trips', () => {
+      const input = 'hello 🌍 world 🚀 test 🎉';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input);
+        if (typeof compressed === 'string') {
+          expect(decompress(compressed)).toBe(input);
+        }
+      }
+    });
+  });
 });
