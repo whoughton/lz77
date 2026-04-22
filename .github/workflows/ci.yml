@@ -53,16 +53,16 @@ jobs:
           path: bench-ci.json
           retention-days: 90
 
+      - name: Restore package-lock.json
+        run: git checkout -- package-lock.json
+
       - name: Store results / compare against baseline
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: customBiggerIsBetter
           output-file-path: bench-ci.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          # Only advance the stored baseline on pushes to main, not on PRs
           auto-push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          # Alert (and comment on PR) when any metric is more than ~23% slower than baseline
-          # (alert-threshold: '130%' means baseline/current > 1.3 triggers alert)
           alert-threshold: '130%'
           fail-on-alert: false
           comment-on-alert: true
