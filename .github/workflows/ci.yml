@@ -21,6 +21,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm install
+      - run: npm test
       - run: npm run coverage
       - name: Upload coverage
         uses: actions/upload-artifact@v4
