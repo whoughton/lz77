@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compress, compressRollingHash, decompress, decompressLegacy, compressHybrid } from '../index';
+import { compress, compressRollingHash, decompress, decompressLegacy, compressHybrid, setup, encodeRefInt, decodeRefInt, decodeRefLength } from '../index';
 import { compressLegacy, compressHashTable } from '../index_legacy';
 
 const compressVariants = [
@@ -42,8 +42,7 @@ describe('LZ77', () => {
     });
   });
 
-  // Known limitation: compressHash (and similar hash-table methods) may fail this test for certain minStringLength and input patterns. This is kept for documentation purposes.
-  it.skip('Round-trip: minStringLength=6, sample issue (#3) string', () => {
+  it('Round-trip: minStringLength=6, sample issue (#3) string', () => {
     const settings = { minStringLength: 6 };
     const to_compress = "can't read my, can't read my, no he can't read my poker face";
     for (const c of compressVariants) {
@@ -240,6 +239,77 @@ it('cross-compressor output consistency', () => {
         if (typeof compressed === 'string') {
           expect(decompress(compressed)).toBe(input);
         }
+      }
+    });
+
+    it('round-trips with a custom safe refPrefix', () => {
+      const settings = { refPrefix: '§' };
+      const input = 'hello hello hello world';
+      for (const c of compressVariants) {
+        const compressed = c.fn(input, settings);
+        if (typeof compressed === 'string') {
+          expect(compressed).not.toContain('`');
+          for (const d of decompressVariants) {
+            expect(d.fn(compressed, settings)).toBe(input);
+          }
+        }
+      }
+    });
+  });
+
+  describe('encoding primitives', () => {
+    const settings = setup();
+
+    it('encodes 0 with width 1 as floor character', () => {
+      expect(encodeRefInt(0, 1, settings)).toBe(' ');
+    });
+
+    it('encodes 0 with width 2 as two floor characters', () => {
+      expect(encodeRefInt(0, 2, settings)).toBe('  ');
+    });
+
+    it('encodes max value for width 1', () => {
+      expect(encodeRefInt(94, 1, settings)).toBe('~');
+    });
+
+    it('round-trips values within range for width 1', () => {
+      for (let v = 0; v < 94; v++) {
+        const encoded = encodeRefInt(v, 1, settings);
+        expect(decodeRefInt(encoded, 1, settings)).toBe(v);
+      }
+    });
+
+    it('round-trips values within range for width 2 (sampled)', () => {
+      for (let v = 0; v < 9214; v += 100) {
+        const encoded = encodeRefInt(v, 2, settings);
+        expect(decodeRefInt(encoded, 2, settings)).toBe(v);
+      }
+    });
+
+    it('throws for value at refIntBase - 1 with width 1', () => {
+      expect(() => encodeRefInt(95, 1, settings)).toThrow();
+    });
+
+    it('throws for negative value', () => {
+      expect(() => encodeRefInt(-1, 1, settings)).toThrow();
+    });
+
+    it('decodeRefInt returns null for char code below floor', () => {
+      expect(decodeRefInt('\x01\x01', 2, settings)).toBeNull();
+    });
+
+    it('decodeRefInt returns null for char code above ceiling', () => {
+      expect(decodeRefInt('\x80\x80', 2, settings)).toBeNull();
+    });
+
+    it('decodeRefInt returns null for short input', () => {
+      expect(decodeRefInt(' ', 2, settings)).toBeNull();
+    });
+
+    it('decodeRefLength round-trips through encodeRefInt', () => {
+      for (let len = settings.minStringLength; len < settings.minStringLength + 94; len++) {
+        const encoded = encodeRefInt(len - settings.minStringLength, 1, settings);
+        expect(decodeRefLength(encoded, settings)).toBe(len);
       }
     });
   });

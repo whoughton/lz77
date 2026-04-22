@@ -226,7 +226,7 @@ export function decompress(source: string, params?: Partial<LZ77Settings>): stri
         for (let i = 0; i < length; i++) {
           out.push(out[start + i]);
         }
-        pos += settings.minStringLength - 1;
+        pos += 4;
       } else {
         if (out.length >= maxSize) return false;
         out.push(settings.refPrefix);
@@ -266,7 +266,7 @@ export function decompressLegacy(source: string, params?: Partial<LZ77Settings>)
         for (let i = 0; i < length; i++) {
           decompressed += decompressed.charAt(start + i);
         }
-        pos += settings.minStringLength - 1;
+        pos += 4;
       } else {
         if (decompressed.length >= maxSize) return false;
         decompressed += settings.refPrefix;
@@ -416,4 +416,4 @@ export function compressHybrid(source: string, params?: Partial<LZ77Settings>): 
 // Make compressHybrid the default compress
 export { compressHybrid as compress };
 
-export { setup, encodeRefInt, encodeRefLength };
+export { setup, encodeRefInt, encodeRefLength, decodeRefInt, decodeRefLength };
