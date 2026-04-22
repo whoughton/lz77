@@ -99,6 +99,22 @@ describe('LZ77', () => {
           expect(d.fn(null as any)).toBe(false);
           expect(d.fn(undefined as any)).toBe(false);
         });
+
+        it('returns false for distance of zero', () => {
+          expect(d.fn('` ' + String.fromCharCode(32) + String.fromCharCode(32 + 5 - 5))).toBe(false);
+        });
+
+        it('returns false for literal followed by truncated reference', () => {
+          expect(d.fn('abc`')).toBe(false);
+          expect(d.fn('abc`A')).toBe(false);
+        });
+
+        it('output never contains undefined string for malformed input', () => {
+          const result = d.fn('`  ');
+          if (typeof result === 'string') {
+            expect(result).not.toContain('undefined');
+          }
+        });
       });
     }
 
