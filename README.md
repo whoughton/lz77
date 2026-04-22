@@ -1,5 +1,5 @@
 ## LZ77
-### Version 2.0 - Typescript, Speed Improvements, New Methods Available
+### Version 2.1 - Correctness, Security, Performance, and Test Coverage
 ![CI](https://github.com/whoughton/lz77/actions/workflows/ci.yml/badge.svg)
 
 A TypeScript/ESM implementation of LZ77, usable for Node.js and modern browsers.
@@ -44,17 +44,18 @@ You can customize the behavior of compression and decompression by passing a par
 
 ```ts
 interface LZ77Settings {
-  refPrefix: string;         // Default: '`'   (backtick, used as reference marker)
-  refIntBase: number;        // Default: 96    (base for encoding reference integers)
-  refIntFloorCode: number;   // Default: 32    (char code for ' ')
-  minStringLength: number;   // Default: 5     (minimum match length)
-  defaultWindow: number;     // Default: 144   (sliding window size)
+  refPrefix: string;            // Default: '`'   (backtick, used as reference marker)
+  refIntBase: number;           // Default: 96    (base for encoding reference integers)
+  refIntFloorCode: number;      // Default: 32    (char code for ' ')
+  minStringLength: number;      // Default: 5     (minimum match length)
+  defaultWindow: number;        // Default: 144   (sliding window size)
   // Advanced/derived:
   refIntCeilCode?: number;
   maxStringDistance?: number;
   maxStringLength?: number;
   maxWindow?: number;
   windowLength?: number;
+  maxDecompressedSize?: number; // Default: Infinity (safety limit for decompression output)
 }
 ```
 
@@ -182,8 +183,7 @@ This will create:
 
 > **Performance note:** In JavaScript, the substring hash table method (`compress`) is generally faster than the rolling hash (Rabin-Karp, `compressRollingHash`) method, even for very large inputs. This is because JavaScript engines highly optimize string operations, making direct substring hashing extremely efficient. Benchmarks in this repository confirm that the rolling hash does not outperform the substring hash table approach in practice. The rolling hash version is included mainly for reference and educational purposes.
 
-- The legacy compressor is fully correct but slow; hash table/optimized methods (compress, compressHashTable) are fast but may miss rare edge cases (see below).
-- The compress (default) method is now always fully correct and round-trip safe (uses compressHybrid internally). compressHash is available for advanced users who want maximum speed and are willing to accept rare edge cases. Debug output has been removed in the latest version.
+- All compress methods (`compress`, `compressHash`, `compressRollingHash`, `compressHybrid`, `compressHashTable`, `compressLegacy`) are round-trip safe with the decompress functions. The `compress` alias defaults to `compressHybrid`, which uses hash-table lookups for performance. `compressHash` and `compressHashTable` are available for advanced users who want maximum speed with the simplest implementation. Debug output has been removed.
 
 ## License
 
