@@ -14,7 +14,7 @@
     "build": "tsc",
     "build:bundle": "vite build",
     "test": "vitest run",
-    "lint": "eslint . --ext .ts",
+    "lint": "oxlint . --ignore-pattern dist --ignore-pattern node_modules --ignore-pattern docs",
     "docs": "typedoc --out docs/ index.ts",
     "bench": "tsx bench.ts",
     "bench:save": "tsx bench.ts --json",
@@ -39,57 +39,13 @@
   },
   "type": "module",
   "devDependencies": {
+    "oxlint": "^1.61.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typedoc": "^0.25.0",
     "typescript": "^5.4.5",
     "vite": "^8.0.9",
     "vitest": "^4.1.5"
-  },
-  "eslintConfig": {
-    "rules": {
-      "indent": [
-        1,
-        "tab",
-        {
-          "SwitchCase": 1
-        }
-      ],
-      "quotes": [
-        1,
-        "single"
-      ],
-      "linebreak-style": [
-        2,
-        "unix"
-      ],
-      "semi": [
-        2,
-        "always"
-      ],
-      "no-console": [
-        0
-      ],
-      "comma-style": [
-        2,
-        "first",
-        {
-          "exceptions": {
-            "ArrayExpression": true,
-            "ObjectExpression": true
-          }
-        }
-      ]
-    },
-    "env": {
-      "es6": true,
-      "browser": true,
-      "node": true
-    },
-    "globals": {
-      "define": true
-    },
-    "extends": "eslint:recommended"
   },
   "types": "dist/index.d.ts"
 }
