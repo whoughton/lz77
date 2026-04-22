@@ -8,6 +8,7 @@
 *.map
 
 dist/
+coverage/
 
 # Local benchmark snapshots (produced by: npm run bench:save -- --label <name>)
 bench-*.json
